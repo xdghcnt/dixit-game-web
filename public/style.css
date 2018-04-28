@@ -1,0 +1,590 @@
+.dark-theme .game {
+    background: #202020;
+}
+
+.dark-theme .spectators {
+    background: rgba(63, 63, 62, 0.78);
+}
+
+.dark-theme .host-controls {
+    background: rgba(63, 63, 62, 0.78);
+}
+
+body.dark-theme {
+    color: #cccaca;
+}
+
+.player.self {
+    font-weight: bold;
+}
+
+.player.current:before {
+    content: "➜ ";
+    line-height: 0;
+}
+
+.player.offline {.status-bar
+    color: #adadad;
+}
+
+.teamsLocked .spectators {
+    cursor: default;
+}
+
+.host-controls {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    padding: 6px;
+    background: rgba(255, 252, 245, 0.58);
+    user-select: none;
+    cursor: default;
+    text-align: right;
+    z-index: 1;
+}
+
+.main-row {
+    display: flex;
+    justify-content: space-between;
+    height: 100%;
+    max-height: 600px;
+    z-index: 1;
+}
+
+.game-board {
+    display: flex;
+    flex-flow: column;
+    justify-content: space-around;
+    height: 100%;
+}
+
+.player-host-controls {
+    margin-left: 5px;
+    display: none;
+}
+
+.player:hover .player-host-controls, .command:hover .player-host-controls {
+    display: inline-block;
+}
+
+.player .host-button, .command .host-button {
+    font-size: 16px;
+    cursor: pointer;
+    vertical-align: text-top;
+}
+
+.kicked {
+    color: black;
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(to right, rgb(238, 244, 236) 0%, #fff5e9 100%);
+    background: #e5efde;
+    -webkit-user-drag: none;
+}
+
+@media (min-width: 768px) and (max-width: 959px) {
+}
+
+@media (max-width: 767px) {
+}
+
+.captcha-solved #captcha-container {
+    display: none;
+}
+
+.little-controls input {
+    width: 39px;
+    background: transparent;
+    border: 1px solid;
+    color: #cccaca;
+    padding: 2px;
+    margin: 3px;
+}
+
+.start-game-buttons div {
+    display: inline-block;
+    padding: 17px;
+}
+
+.little-controls div {
+    display: inline-block;
+}
+
+.settings-button {
+    cursor: pointer;
+}
+
+.settings-button:hover {
+    background: #f4e2e0;
+}
+
+.dark-theme .settings-button:hover {
+    background: #4e4e4e;
+}
+
+.level-selected {
+    background: #f9e7e5;
+}
+
+.dark-theme .level-selected {
+    background: #484848;
+}
+
+.little-controls input {
+    color: black;
+}
+
+.dark-theme .little-controls input {
+    color: #cccaca;
+}
+
+.start-game-buttons i, .custom-game-button i {
+    vertical-align: bottom;
+    margin-right: 3px;
+}
+
+.little-controls i {
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
+.side-buttons {
+    display: none;
+}
+
+.host-controls:hover .side-buttons {
+    display: inline-block;
+}
+
+.start-game-title {
+    text-align: center;
+    padding: 7px;
+    border-top: 1px solid;
+    margin-top: 4px;
+    padding-bottom: 3px;
+}
+
+.little-controls {
+    text-align: left;
+    border-bottom: 1px solid;
+    padding-bottom: 6px;
+    height: 25px;
+}
+
+.side-buttons * {
+    margin-right: 2px;
+}
+
+.game-settings .value {
+    vertical-align: middle;
+    padding: 4.5px 0;
+    padding-right: 27px;
+    display: inline-block;
+}
+
+.score:hover .change-score {
+    display: inline-block;
+}
+
+.host-controls-menu {
+    display: none;
+    margin-bottom: 9px;
+}
+
+.host-controls:hover .host-controls-menu {
+    display: block;
+}
+
+.start-game-buttons {
+    color: gray;
+}
+
+.start-game-buttons .settings-button {
+    color: black;
+}
+
+.dark-theme .start-game-buttons {
+    color: #909090;
+}
+
+.dark-theme .start-game-buttons .settings-button {
+    color: #cccaca;
+}
+
+.settings-hover-button {
+    padding: 2px;
+}
+
+.round-track-bar {
+    background-color: #d6ecc6;
+    width: 50px;
+    height: 50px;
+    border-radius: 50px;
+    position: relative;
+}
+
+.dark-theme .round-track-bar {
+    background-color: #7f9271;
+}
+
+.rtb-clip1, .rtb-clip2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50px;
+    height: 50px;
+}
+
+.rtb-slice1, .rtb-slice2 {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 25px;
+    transform: rotate(0);
+    background-color: #82ec5a;
+    transition: transform 1s linear;
+}
+
+.dark-theme .rtb-slice1, .dark-theme .rtb-slice2 {
+    background-color: #7ace5a;
+}
+
+.rtb-clip1 {
+    clip: rect(0, 50px, 50px, 25px);
+}
+
+.rtb-clip2 {
+    clip: rect(0, 25px, 50px, 0);
+}
+
+.rtb-slice1 {
+    clip: rect(0, 25px, 50px, 0);
+}
+
+.rtb-slice2 {
+    clip: rect(0, 50px, 50px, 25px);
+}
+
+.rtb-content {
+    position: absolute;
+    height: 50px;
+    width: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.status-bar-circle {
+    width: 42px;
+    height: 42px;
+    background: white;
+    border-radius: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dark-theme .status-bar-circle {
+    background: #4e4e4e;
+}
+
+.status-bar-wrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.status-bar {
+    margin: auto;
+    width: 415px;
+    background: white;
+    padding: 8px;
+    display: table;
+    height: 20px;
+    overflow: hidden;
+    border-radius: 0 0 25px 25px;
+}
+
+.dark-theme .status-bar {
+    background: #4e4e4e;
+}
+
+.add-command-button {
+    display: inline-block;
+    margin-left: 3px;
+    vertical-align: bottom;
+}
+
+.timer-section {
+    display: table-cell;
+    vertical-align: bottom;
+    width: 50px;
+}
+
+.title-section {
+    display: table-cell;
+    padding-left: 70px;
+    padding-right: 20px;
+    vertical-align: middle;
+    text-align: center;
+}
+
+.add-command {
+    padding: 4px 0;
+}
+
+.join-button {
+    border-bottom: 1px dotted;
+    display: inline-block;
+    cursor: pointer;
+    margin: 6px 0;
+}
+
+.spectators {
+    border-top: 1px solid #cccccc;
+}
+
+.player-list-section {
+    background: white;
+    padding: 10px;
+    width: 193px;
+}
+
+.dark-theme .player-list-section {
+    background: #4e4e4e;
+}
+
+.hand-cards-section {
+    position: fixed;
+    bottom: 0;
+    align-self: center;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.card {
+    background: white;
+    margin: 10px;
+    padding: 13px;
+    width: 110px;
+    height: 145px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.dark-theme .card {
+    background: #4e4e4e;
+}
+
+.card.checked {
+    position: relative;
+    top: -10px;
+}
+
+.desk-cards-section {
+    width: 100%;
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-info {
+    font-size: 13px;
+}
+
+#avatar-input {
+    display: none;
+}
+
+.card-face {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.player {
+    white-space: nowrap;
+    margin: 6px 0;
+}
+
+.avatar {
+    background-size: cover;
+    background-position: center;
+    border-radius: 25px;
+    background-repeat: no-repeat;
+}
+
+.player .avatar {
+    width: 50px;
+    height: 50px;
+    border: 3px solid transparent;
+    border-radius: 100px;
+    background-clip: content-box;
+}
+
+.player.ready .avatar {
+    border: 3px solid #97c377;
+}
+
+.player-avatar-section {
+    display: table-cell;
+    border-radius: 25px;
+    color: white;
+    position: relative;
+}
+
+.dark-theme .player-avatar-section {
+    background: #4e4e4e;
+}
+
+.player-name-section {
+    padding: 0 11px;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-stub {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.round-track-bar .avatar {
+    width: 42px;
+    height: 42px;
+    background-color: white;
+    border: 2px solid white;
+}
+
+.dark-theme .round-track-bar .avatar {
+    background-color: #4e4e4e;
+    border: 2px solid #4e4e4e;
+}
+
+.round-track-bar .avatar.has-avatar {
+    border: 1px solid white;
+}
+
+.dark-theme .round-track-bar .avatar.has-avatar {
+    border: 1px solid #4e4e4e !important;
+}
+
+.change-avatar-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 3px;
+    border-radius: 25px;
+    color: #000000;
+    opacity: 0.7;
+    cursor: pointer;
+    background-color: white;
+    display: none;
+}
+
+.dark-theme .change-avatar-icon {
+    background-color: #4e4e4e;
+}
+
+.player-avatar-section:hover .change-avatar-icon {
+    display: block;
+}
+
+.game-board.teamsLocked .join-button {
+    display: none;
+}
+
+.game-board.teamsLocked .spectators.empty {
+    display: none;
+}
+
+.player-name {
+    max-width: 102px;
+    overflow: hidden;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+}
+
+.add-command-button {
+    cursor: pointer;
+}
+
+input#command-input {
+    border: 1px solid #b5b3b3;
+    padding: 2px;
+}
+
+.dark-theme #command-input {
+    background: #797979;
+    border: 1px solid #b5b3b3;
+    color: gainsboro;
+}
+
+.card-owner .avatar {
+    width: 35px;
+    height: 35px;
+    border: 6px solid white;
+}
+
+.dark-theme .card-owner .avatar {
+    border: 6px solid #4e4e4e;
+}
+
+.card-owner {
+    position: absolute;
+    top: -16px;
+    left: -9px;
+}
+
+.card-votes .avatar {
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+    margin: 3px;
+    border: 3px solid white;
+}
+
+.dark-theme .card-votes .avatar {
+    border: 3px solid #4e4e4e;
+}
+
+.card-votes {
+    position: absolute;
+    top: 100%;
+    margin-top: 5px;
+    width: 100%;
+    left: 0;
+    text-align: right;
+}
+
+.card-face.zoomed {
+    position: fixed;
+    top: 30px;
+    left: 30px;
+    right: 30px;
+    bottom: 30px;
+    background-size: contain;
+    z-index: 1;
+    width: auto;
+    height: auto;
+}
