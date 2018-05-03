@@ -2,10 +2,6 @@
     background: #202020;
 }
 
-.dark-theme .spectators {
-    background: rgba(63, 63, 62, 0.78);
-}
-
 .dark-theme .host-controls {
     background: rgba(63, 63, 62, 0.78);
 }
@@ -23,8 +19,8 @@ body.dark-theme {
     line-height: 0;
 }
 
-.player.offline {.status-bar
-    color: #adadad;
+.player.offline {
+. status-bar color: #adadad;
 }
 
 .teamsLocked .spectators {
@@ -46,8 +42,7 @@ body.dark-theme {
 .main-row {
     display: flex;
     justify-content: space-between;
-    height: 100%;
-    max-height: 600px;
+    min-height: 191px;
     z-index: 1;
 }
 
@@ -372,7 +367,7 @@ body {
 .card {
     background: white;
     margin: 10px;
-    padding: 13px;
+    padding: 7px;
     width: 110px;
     height: 145px;
     text-align: center;
@@ -386,13 +381,37 @@ body {
 
 .card.checked {
     position: relative;
-    top: -10px;
+    top: -25px;
+}
+
+.card.correct {
+    background: #99c478;
+}
+
+.dark-theme .card.correct {
+    background: #699c55;
+}
+
+.card.correct .card-owner .avatar {
+    border-color: #99c478;
+}
+
+.card.correct .card-owner .avatar.has-avatar {
+    background-color: #99c478 !important;
+}
+
+.dark-theme .card.correct .card-owner .avatar {
+    border-color: #699c55;
+}
+
+.dark-theme .card.correct .card-owner .avatar.has-avatar {
+    background-color: #699c55 !important;
 }
 
 .desk-cards-section {
     width: 100%;
     display: flex;
-    flex-flow: row;
+    flex-flow: row wrap;
     align-items: center;
     justify-content: center;
 }
@@ -425,12 +444,20 @@ body {
     background-repeat: no-repeat;
 }
 
+.dark-theme .avatar {
+    color: #c5c3c3;
+}
+
 .player .avatar {
     width: 50px;
     height: 50px;
-    border: 3px solid transparent;
+    border: 3px solid #e5efde;
     border-radius: 100px;
     background-clip: content-box;
+}
+
+.dark-theme .player .avatar {
+    border: 3px solid #687260;
 }
 
 .player.ready .avatar {
@@ -440,7 +467,6 @@ body {
 .player-avatar-section {
     display: table-cell;
     border-radius: 25px;
-    color: white;
     position: relative;
 }
 
@@ -469,13 +495,19 @@ body {
 .round-track-bar .avatar {
     width: 42px;
     height: 42px;
-    background-color: white;
     border: 2px solid white;
 }
 
 .dark-theme .round-track-bar .avatar {
-    background-color: #4e4e4e;
     border: 2px solid #4e4e4e;
+}
+
+.round-track-bar .avatar.has-avatar, .card-owner .avatar.has-avatar {
+    background-color: white !important;
+}
+
+.dark-theme .round-track-bar .avatar.has-avatar, .dark-theme .card-owner .avatar.has-avatar  {
+    background-color: #4e4e4e !important;
 }
 
 .round-track-bar .avatar.has-avatar {
@@ -488,8 +520,8 @@ body {
 
 .change-avatar-icon {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 13px;
+    right: 13px;
     padding: 3px;
     border-radius: 25px;
     color: #000000;
@@ -501,6 +533,7 @@ body {
 
 .dark-theme .change-avatar-icon {
     background-color: #4e4e4e;
+    color: #e2dede;
 }
 
 .player-avatar-section:hover .change-avatar-icon {
@@ -557,10 +590,9 @@ input#command-input {
 }
 
 .card-votes .avatar {
-    width: 32px;
-    height: 32px;
-    display: inline-block;
-    margin: 3px;
+    width: 30px;
+    height: 30px;
+    margin: 2px;
     border: 3px solid white;
 }
 
@@ -574,7 +606,8 @@ input#command-input {
     margin-top: 5px;
     width: 100%;
     left: 0;
-    text-align: right;
+    display: flex;
+    flex-flow: row-reverse wrap;
 }
 
 .card-face.zoomed {
@@ -587,4 +620,11 @@ input#command-input {
     z-index: 1;
     width: auto;
     height: auto;
+}
+
+.card.flipped {
+    background-image: url(http://puu.sh/AceCC/2bcb546c91.png);
+    background-size: 76px;
+    background-repeat: no-repeat;
+    background-position: center;
 }

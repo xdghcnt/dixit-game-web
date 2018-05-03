@@ -54,20 +54,22 @@ class Player extends React.Component {
 
 class Avatar extends React.Component {
     render() {
-        const avatarImg = this.props.data.avatars[this.props.player];
+        const
+            hasAvatar = !!this.props.data.playerAvatars[this.props.player],
+            avatarURI = `/avatars/${this.props.player}/${this.props.data.playerAvatars[this.props.player]}.png`;
         return (
             <div className={
                 "avatar"
-                + (avatarImg ? " has-avatar" : "")}
+                + (hasAvatar ? " has-avatar" : "")}
                  style={{
-                     "background-image": avatarImg
-                         ? `url(${avatarImg})`
+                     "background-image": hasAvatar
+                         ? `url(${avatarURI})`
                          : `none`,
-                     "background-color": avatarImg
+                     "background-color": hasAvatar
                          ? `transparent`
-                         : this.props.data.playerColors[this.props.player]
+                         : `${this.props.data.playerColors[this.props.player]}`
                  }}>
-                {!avatarImg ? (
+                {!hasAvatar ? (
                     <i className="material-icons avatar-stub">
                         person
                     </i>
@@ -82,7 +84,9 @@ class Card extends React.Component {
         return (
             <div className={
                 "card"
-                + (this.props.checked ? " checked" : "")}
+                + (this.props.checked ? " checked" : "")
+                + (this.props.cardData && this.props.cardData.correct
+                    ? " correct" : "")}
                  onMouseUp={() => this.props.handleCardClick(this.props.id)}>
                 <div className="card-face" style={{"background-image": `url(${this.props.card})`}}
                      onMouseDown={(evt) => this.props.handleCardPress(evt.target)}
@@ -111,17 +115,27 @@ class Game extends React.Component {
         }
         if (!location.hash)
             location.hash = makeId();
+        this.avatarId = localStorage.avatarId;
         initArgs.roomId = location.hash.substr(1);
         initArgs.userId = this.userId = localStorage.userId;
         initArgs.userName = localStorage.userName;
         this.socket = io();
         this.player = {cards: []};
         this.socket.on("state", state => {
-            if (this.state.hasCommand === false && state.hasCommand === true && !parseInt(localStorage.muteSounds))
-                this.chimeSound.play();
+            if (this.state.phase && state.phase !== 0 && !parseInt(localStorage.muteSounds)) {
+                if (this.state.currentPlayer !== this.userId && state.currentPlayer === this.userId)
+                    this.masterSound.play();
+                else if (this.state.phase === 1 && state.phase === 2)
+                    this.storySound.play();
+                else if (this.state.phase === 2 && state.phase === 3)
+                    this.revealSound.play();
+                else if (state.phase === 2 && this.state.readyPlayers.length !== state.readyPlayers.length)
+                    this.tapSound.play();
+                else if (this.state.loadingCards && !state.loadingCards)
+                    this.dealSound.play();
+            }
             this.setState(Object.assign({
                 userId: this.userId,
-                avatars: this.avatars,
                 player: this.player
             }, state));
             if (!~state.onlinePlayers.indexOf(this.userId))
@@ -130,14 +144,6 @@ class Game extends React.Component {
         this.socket.on("player-state", player => {
             this.player = Object.assign({}, this.player, player);
             this.setState(Object.assign(this.state, {player: this.player}));
-        });
-        this.socket.on("request-avatar", () => {
-            if (localStorage.avatar)
-                this.socket.emit("set-avatar", localStorage.avatar);
-        });
-        this.socket.on("update-avatars", avatars => {
-            this.avatars = Object.assign({}, this.avatars, avatars);
-            this.setState(this.state);
         });
         this.socket.on("message", text => {
             alert(text);
@@ -150,15 +156,6 @@ class Game extends React.Component {
         });
         this.socket.on("reload", () => {
             window.location.reload();
-        });
-        this.socket.on("highlight-card", (wordIndex) => {
-            const node = document.querySelector(`[data-cardIndex='${wordIndex}']`);
-            if (node) {
-                if (!parseInt(localStorage.muteSounds))
-                    this.tapSound.play();
-                node.classList.add("highlight-anim");
-                setTimeout(() => node.classList.remove("highlight-anim"), 0);
-            }
         });
         this.socket.on("auth-required", () => {
             this.setState(Object.assign({}, this.state, {
@@ -173,14 +170,25 @@ class Game extends React.Component {
             else
                 setTimeout(() => window.location.reload(), 3000)
         });
-        document.title = `Memxit - ${initArgs.roomId}`;
+        this.socket.on("auth-token", (token) => {
+            this.authToken = token;
+        });
+        document.title = `Memexit - ${initArgs.roomId}`;
         this.socket.emit("init", initArgs);
-        this.timerSound = new Audio("timer-beep.mp3");
-        this.timerSound.volume = 0.5;
+        this.timerSound = new Audio("tick.mp3");
+        this.timerSound.volume = 0.4;
         this.tapSound = new Audio("tap.mp3");
-        this.tapSound.volume = 0.6;
-        this.chimeSound = new Audio("chime.mp3");
-        this.chimeSound.volume = 0.25;
+        this.tapSound.volume = 0.3;
+        this.storySound = new Audio("start.mp3");
+        this.storySound.volume = 0.4;
+        this.revealSound = new Audio("reveal.mp3");
+        this.revealSound.volume = 0.3;
+        this.masterSound = new Audio("master.mp3");
+        this.masterSound.volume = 0.7;
+        this.dealSound = new Audio("deal.mp3");
+        this.dealSound.volume = 0.3;
+        if (this.avatarId)
+            this.socket.emit("update-avatar", this.avatarId);
     }
 
     constructor() {
@@ -204,8 +212,8 @@ class Game extends React.Component {
 
     handleAddCommandClick() {
         const input = document.getElementById("command-input");
-        if (input && input.value && this.state.player.playedCard)
-            this.socket.emit("add-command", input.value, this.state.player.playedCard);
+        if (input && input.value)
+            this.socket.emit("add-command", input.value);
     }
 
     handleRemovePlayer(id, evt) {
@@ -236,35 +244,43 @@ class Game extends React.Component {
 
     handleSetAvatar(event) {
         const input = event.target;
-        if (input.files && input.files[0]) {
-            const
-                fileSize = ((input.files[0].size / 1024) / 1024).toFixed(4), // MB
-                FR = new FileReader();
-            if (fileSize <= 5) {
-                FR.addEventListener("load", event => {
-                    localStorage.avatar = event.target.result;
-                    this.socket.emit("set-avatar", event.target.result);
-                });
-                FR.readAsDataURL(input.files[0]);
-            } else alert("File shouldn't be larger than 5 MB")
+        if (input.files && input.files[0])
+            this.sendAvatar(input.files[0]);
+    }
+
+    sendAvatar(file) {
+        const
+            uri = "/upload-avatar",
+            xhr = new XMLHttpRequest(),
+            fd = new FormData(),
+            fileSize = ((file.size / 1024) / 1024).toFixed(4); // MB
+        if (fileSize <= 5) {
+
+            xhr.open("POST", uri, true);
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    this.avatarId = localStorage.avatarId = xhr.responseText;
+                    this.socket.emit("update-avatar", this.avatarId);
+                }
+            };
+            fd.append("avatar", file);
+            fd.append("userId", this.userId);
+            fd.append("authToken", this.authToken);
+            xhr.send(fd);
         }
+        else
+            alert("File shouldn't be larger than 5 MB");
     }
 
     handleToggleTheme() {
         localStorage.darkTheme = !parseInt(localStorage.darkTheme) ? 1 : 0;
         document.body.classList.toggle("dark-theme");
-        this.setState(Object.assign({
-            userId: this.userId,
-            activeWord: this.state.activeWord
-        }, this.state));
+        this.setState(Object.assign({}, this.state));
     }
 
     handleToggleMuteSounds() {
         localStorage.muteSounds = !parseInt(localStorage.muteSounds) ? 1 : 0;
-        this.setState(Object.assign({
-            userId: this.userId,
-            activeWord: this.state.activeWord
-        }, this.state));
+        this.setState(Object.assign({}, this.state));
     }
 
     handleClickTogglePause() {
@@ -360,7 +376,7 @@ class Game extends React.Component {
                         this.setState(Object.assign({}, this.state, {time: time}));
                         this.updateTimer(time);
                         if (this.state.timed && time < 6000 && ((Math.floor(prevTime / 1000) - Math.floor(time / 1000)) > 0) && !parseInt(localStorage.muteSounds))
-                            this.tapSound.play();
+                            this.timerSound.play();
                     }
                     if (!this.state.timed)
                         this.updateTimer(0);
@@ -427,7 +443,7 @@ class Game extends React.Component {
                                                     data.players.length > 1 ? "thumb_up" : "block"
                                                 }</i></div>
                                             ) : (
-                                                (data.phase === 1 || data.phase === 2) ? (
+                                                (data.phase === 1 || data.phase === 2 || data.phase === 3) ? (
                                                     <Avatar data={data} player={data.currentPlayer}/>
                                                 ) : <Avatar data={data} player={data.playerLeader}/>)
                                         }
@@ -466,7 +482,7 @@ class Game extends React.Component {
                                 </div>
                             </div>
                             <div className="desk-cards-section">
-                                {data.phase === 3
+                                {data.phase !== 2
                                     ? data.deskCards.map(((card, id) => (
                                         <Card key={id} data={data} id={id} card={card.img} cardData={card}
                                               checked={data.player.votedCard === id}

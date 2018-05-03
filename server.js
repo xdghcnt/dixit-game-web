@@ -5,8 +5,10 @@ const
     socketIo = require("socket.io"),
     reCAPTCHA = require('recaptcha2'),
     {VK} = require('vk-io'),
-    logging = false,
-    useCaptcha = false;
+    fileUpload = require('express-fileupload'),
+    exec = require('child_process').exec,
+    logging = true,
+    useCaptcha = true
 
 const vk = new VK();
 
@@ -35,6 +37,15 @@ async function prepareVK() {
 }
 
 prepareVK();
+
+function makeId() {
+    let text = "";
+    const possible = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    for (let i = 0; i < 5; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
+}
 
 function shuffleArray(array) {
     array.sort(() => (Math.random() - 0.5));
@@ -73,17 +84,41 @@ const recaptcha = new reCAPTCHA({
 const
     rooms = {},
     intervals = {},
-    avatars = {},
     authorizedUsers = {},
+    authTokens = {},
     attemptIPs = {},
     state = {},
     sockets = {};
 
 // Server part
 const app = express();
+
+app.use(fileUpload({
+    limits: {fileSize: 5 * 1024 * 1024},
+    abortOnLimit: true
+}));
+
+app.post('/upload-avatar', function (req, res) {
+    if (req.files && req.files.avatar && authTokens[req.body.userId] === req.body.authToken) {
+        const userDir = `${__dirname}/public/avatars/${req.body.userId}`;
+        exec(`rm -r ${userDir}`, () => {
+            fs.mkdir(userDir, () => {
+                req.files.avatar.mv(`${userDir}/${req.files.avatar.md5}.png`, function (err) {
+                    if (err) {
+                        log(`fileUpload mv error ${err}`);
+                        return res.status(500).send("FAIL");
+                    }
+                    res.send(req.files.avatar.md5);
+                });
+            })
+
+        });
+    }
+});
+
 app.use('/', express.static(path.join(__dirname, 'public')));
 
-app.get('/memxit', function (req, res) {
+app.get('/memexit', function (req, res) {
     res.sendFile(__dirname + '/public/index.html');
 });
 
@@ -94,7 +129,7 @@ console.log('Server listening on port 1477');
 const io = socketIo(server);
 
 io.on("connection", socket => {
-    let room, user, userToken, initArgs, player
+    let room, user, userToken, initArgs, player;
     socket.use((packet, next) => {
         if (packet[0] === "init" || packet[0] === "auth" || room) {
             log(`${(new Date()).toISOString()}: ${socket.handshake.address} - ${JSON.stringify(packet)}`);
@@ -191,7 +226,6 @@ io.on("connection", socket => {
             clearInterval(intervals[room.roomId]);
         },
         endRound = () => {
-            console.log('end round sequence');
             revealVotes();
             countPoints();
             room.activePlayers.clear();
@@ -237,21 +271,31 @@ io.on("connection", socket => {
             }
         },
         playCard = (playerId, cardIndex) => {
-            player[playerId].playedCard = cardIndex;
-            room.readyPlayers.add(playerId);
-            if (room.readyPlayers.size === room.activePlayers.size) {
-                room.readyPlayers.clear();
-                room.phase = 3;
-                revealCards();
-                startTimer();
+            if (player[playerId].playedCard !== cardIndex) {
+                player[playerId].playedCard = cardIndex;
+                room.readyPlayers.add(playerId);
+                if (room.readyPlayers.size === room.activePlayers.size) {
+                    room.readyPlayers.clear();
+                    room.phase = 3;
+                    revealCards();
+                    startTimer();
+                }
+            } else {
+                player[playerId].playedCard = null;
+                room.readyPlayers.delete(playerId);
             }
             updatePlayerState();
         },
         voteCard = (playerId, cardIndex) => {
-            player[playerId].votedCard = cardIndex;
-            room.readyPlayers.add(playerId);
-            if (room.readyPlayers.size === room.activePlayers.size - 1)
-                endRound();
+            if (player[playerId].votedCard !== cardIndex) {
+                player[playerId].votedCard = cardIndex;
+                room.readyPlayers.add(playerId);
+                if (room.readyPlayers.size === room.activePlayers.size - 1)
+                    endRound();
+            } else {
+                player[playerId].votedCard = null;
+                room.readyPlayers.delete(playerId);
+            }
             updatePlayerState();
         },
         revealCards = () => {
@@ -275,8 +319,11 @@ io.on("connection", socket => {
                 const
                     playerPlayedCard = room.deskCards[player[playerId].cardOnDesk],
                     playerVotedCard = room.deskCards[player[playerId].votedCard];
-                if (playerPlayedCard)
+                if (playerPlayedCard) {
                     playerPlayedCard.owner = playerId;
+                    if (playerId === room.currentPlayer)
+                        playerPlayedCard.correct = true;
+                }
                 else
                     log("unexpected cardOnDesk empty", JSON.stringify(player, null, 4), JSON.stringify(room, null, 4));
                 if (room.currentPlayer !== playerId) {
@@ -289,16 +336,16 @@ io.on("connection", socket => {
         },
         countPoints = () => {
             room.deskCards.forEach(card => {
-                if (card.owner === room.currentPlayer) {
+                if (card.owner === room.currentPlayer && card.votes.length > 0) {
                     if (card.votes.length !== room.activePlayers.size - 1) {
                         addPoints(card.owner, 3);
                         addPoints(card.owner, card.votes.length);
+                        card.votes.forEach(playerId => {
+                            addPoints(playerId, 3);
+                        });
                     }
                     else
                         addPoints(card.owner, -3);
-                    card.votes.forEach(playerId => {
-                        addPoints(playerId, 3);
-                    });
                 }
                 else
                     addPoints(card.owner, card.votes.length);
@@ -328,11 +375,13 @@ io.on("connection", socket => {
                 startRound();
         },
         init = () => {
+            const authToken = makeId();
+            authTokens[initArgs.userId] = authToken;
+            socket.emit("auth-token", authToken);
             socket.join(initArgs.roomId);
             user = initArgs.userId;
             if (!rooms[initArgs.roomId]) {
                 intervals[initArgs.roomId] = {};
-                avatars[initArgs.roomId] = {};
                 state[initArgs.roomId] = {playerState: {}};
                 sockets[initArgs.roomId] = {};
             }
@@ -358,14 +407,15 @@ io.on("connection", socket => {
                 playerLeader: null,
                 deskCards: [],
                 phase: 0,
-                masterTime: 30,
-                teamTime: 5,
-                votingTime: 5,
+                masterTime: 60,
+                teamTime: 40,
+                votingTime: 40,
                 goal: 30,
                 time: null,
                 paused: true,
                 loadingCards: false,
-                authRequired: false
+                authRequired: false,
+                playerAvatars: {}
             };
             if (!room.playerNames[user]) {
                 room.spectators.add(user);
@@ -375,14 +425,10 @@ io.on("connection", socket => {
                     cardOnDesk: null,
                     votedCard: null
                 };
-                socket.emit("request-avatar");
             }
             room.playerColors[user] = room.playerColors[user] || getRandomColor();
             room.onlinePlayers.add(user);
             room.playerNames[user] = initArgs.userName;
-            const playerAvatars = {};
-            [...room.players].forEach(player => playerAvatars[player] = avatars[room.roomId][player]);
-            socket.emit("update-avatars", playerAvatars);
             update();
             updatePlayerState();
         };
@@ -394,9 +440,8 @@ io.on("connection", socket => {
         else
             init();
     });
-    socket.on("set-avatar", avatar => {
-        avatars[room.roomId][user] = avatar;
-        io.to(room.roomId).emit("update-avatars", {[user]: avatar});
+    socket.on("update-avatar", id => {
+        room.playerAvatars[user] = id;
         update();
     });
     socket.on("toggle-lock", () => {
