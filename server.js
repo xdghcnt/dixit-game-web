@@ -7,36 +7,12 @@ const
     {VK} = require('vk-io'),
     fileUpload = require('express-fileupload'),
     exec = require('child_process').exec,
-    logging = true,
-    useCaptcha = true
+    logging = false,
+    useCaptcha = false;
 
 const vk = new VK();
 
 vk.setToken("");
-
-let getImages;
-
-async function prepareVK() {
-    const groupId = (await vk.api.groups.getById({
-        group_id: "oko_mag"
-    }))[0].id;
-    const totalCount = (await vk.api.photos.get({
-        owner_id: -groupId,
-        album_id: "wall",
-        count: 0
-    })).count;
-    getImages = (count) => Promise.all(
-        Array.apply(null, new Array(count)).map(() => vk.api.photos.get({
-            owner_id: -groupId,
-            album_id: "wall",
-            photo_sizes: 1,
-            count: 1,
-            offset: getRandomInt(0, totalCount)
-        }).then(data => data.items[0].sizes[data.items[0].sizes.length - 1].src))
-    );
-}
-
-prepareVK();
 
 function makeId() {
     let text = "";
@@ -54,10 +30,6 @@ function shuffleArray(array) {
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-function getCards(count) {
-    return getImages(count);
 }
 
 function log(text) {
@@ -88,7 +60,8 @@ const
     authTokens = {},
     attemptIPs = {},
     state = {},
-    sockets = {};
+    sockets = {},
+    prevEventTimeIP = {};
 
 // Server part
 const app = express();
@@ -129,8 +102,13 @@ console.log('Server listening on port 1477');
 const io = socketIo(server);
 
 io.on("connection", socket => {
-    let room, user, userToken, initArgs, player;
+    let room, user, userToken, initArgs, player, prevGameStartTime = new Date();
+    prevEventTimeIP[socket.handshake.address] = +(new Date()) - 30;
     socket.use((packet, next) => {
+        if (+(new Date()) - prevEventTimeIP[socket.handshake.address] < 25) {
+            socket.disconnect(true);
+            return;
+        }
         if (packet[0] === "init" || packet[0] === "auth" || room) {
             log(`${(new Date()).toISOString()}: ${socket.handshake.address} - ${JSON.stringify(packet)}`);
             return next();
@@ -144,6 +122,38 @@ io.on("connection", socket => {
                     playerSocket.emit("player-state", player[playerId]);
             })
         },
+        getGroupInfo = () => new Promise((resolve, reject) => {
+            const match = room.groupURI.match(/\/([^/]+)$/);
+            if (match && match[1]) {
+                vk.api.groups.getById({
+                    group_id: match[1]
+                }).then(res => {
+                    room.groupId = res[0].id;
+                    vk.api.photos.get({
+                        owner_id: -room.groupId,
+                        album_id: "wall",
+                        count: 0
+                    }).then(res => {
+                        room.groupCount = res.count;
+                        if (room.groupCount < 1)
+                            reject("Group has no images");
+                        else
+                            resolve();
+                    }).catch(reject)
+                }).catch(reject);
+            }
+            else
+                reject("Invalid group id");
+        }),
+        getCards = (count) => Promise.all(
+            Array.apply(null, new Array(count)).map(() => vk.api.photos.get({
+                owner_id: -room.groupId,
+                album_id: "wall",
+                photo_sizes: 1,
+                count: 1,
+                offset: getRandomInt(0, room.groupCount - 1)
+            }).then(data => data.items[0].sizes[data.items[0].sizes.length - 1].src))
+        ),
         getNextPlayer = () => {
             const nextPlayerIndex = [...room.players].indexOf(room.currentPlayer) + 1;
             return [...room.players][(room.players.size === nextPlayerIndex) ? 0 : nextPlayerIndex];
@@ -163,6 +173,7 @@ io.on("connection", socket => {
                         room.time -= new Date() - time;
                         time = new Date();
                         if (room.time <= 0) {
+                            log(`timeout triggered ${printState()}`);
                             clearInterval(intervals[room.roomId]);
                             if (room.phase === 1) {
                                 room.currentPlayer = getNextPlayer();
@@ -208,15 +219,24 @@ io.on("connection", socket => {
             });
         },
         startGame = () => {
-            room.paused = false;
-            room.teamsLocked = true;
-            room.playerWin = null;
-            room.time = null;
-            room.playerScores = {};
-            room.deskCards = [];
-            [...room.players].forEach((id) => player[id].cards = []);
-            clearInterval(intervals[room.roomId]);
-            startRound();
+            prevGameStartTime = +(new Date());
+            getGroupInfo()
+                .then(() => {
+                    room.paused = false;
+                    room.teamsLocked = true;
+                    room.playerWin = null;
+                    room.time = null;
+                    room.playerScores = {};
+                    room.deskCards = [];
+                    [...room.players].forEach((id) => player[id].cards = []);
+                    clearInterval(intervals[room.roomId]);
+                    startRound();
+                })
+                .catch((error) => {
+                    endGame();
+                    sockets[room.roomId][room.hostId] && sockets[room.roomId][room.hostId].emit("message", error.message || error);
+                    update();
+                });
         },
         endGame = () => {
             room.paused = true;
@@ -236,6 +256,7 @@ io.on("connection", socket => {
                 endGame();
         },
         startRound = () => {
+            log(`round started ${printState()}`);
             room.command = null;
             room.readyPlayers.clear();
             room.phase = 1;
@@ -325,12 +346,12 @@ io.on("connection", socket => {
                         playerPlayedCard.correct = true;
                 }
                 else
-                    log("unexpected cardOnDesk empty", JSON.stringify(player, null, 4), JSON.stringify(room, null, 4));
+                    log(`unexpected cardOnDesk empty ${printState()}`);
                 if (room.currentPlayer !== playerId) {
                     if (playerVotedCard)
                         playerVotedCard.votes.push(playerId);
                     else
-                        log("unexpected cardVotes empty", JSON.stringify(player, null, 4), JSON.stringify(room, null, 4));
+                        log(`unexpected cardVotes empty ${printState()}`);
                 }
             });
         },
@@ -374,6 +395,8 @@ io.on("connection", socket => {
             if (room.currentPlayer === playerId)
                 startRound();
         },
+        canStartGame = () => room.players.size > 0 && (!prevGameStartTime || (+(new Date()) - prevGameStartTime) > 3000),
+        printState = () => `\m player-state: ${JSON.stringify(player, null, 4)} \n game-state: ${JSON.stringify(room, null, 4)}`,
         init = () => {
             const authToken = makeId();
             authTokens[initArgs.userId] = authToken;
@@ -415,7 +438,8 @@ io.on("connection", socket => {
                 paused: true,
                 loadingCards: false,
                 authRequired: false,
-                playerAvatars: {}
+                playerAvatars: {},
+                groupURI: "https://vk.com/oko_mag"
             };
             if (!room.playerNames[user]) {
                 room.spectators.add(user);
@@ -444,6 +468,11 @@ io.on("connection", socket => {
         room.playerAvatars[user] = id;
         update();
     });
+    socket.on("set-group-uri", value => {
+        if (user === room.hostId)
+            room.groupURI = value;
+        update();
+    });
     socket.on("toggle-lock", () => {
         if (user === room.hostId)
             room.teamsLocked = !room.teamsLocked;
@@ -470,7 +499,7 @@ io.on("connection", socket => {
         update();
     });
     socket.on("toggle-pause", () => {
-        if (user === room.hostId && !room.loadingCards) {
+        if (user === room.hostId && !room.loadingCards && (room.phase !== 0 || canStartGame())) {
             room.paused = !room.paused;
             if (!room.paused)
                 room.teamsLocked = true;
@@ -480,7 +509,7 @@ io.on("connection", socket => {
         update();
     });
     socket.on("restart", () => {
-        if (user === room.hostId)
+        if (user === room.hostId && canStartGame())
             startGame();
         update();
     });
@@ -501,7 +530,7 @@ io.on("connection", socket => {
     });
     socket.on("change-name", value => {
         if (value)
-            room.playerNames[user] = value;
+            room.playerNames[user] = value.substr && value.substr(0, 60);
         update();
     });
     socket.on("remove-player", playerId => {

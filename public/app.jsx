@@ -152,10 +152,10 @@ class Game extends React.Component {
             this.setState({
                 inited: false
             });
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 3000);
         });
         this.socket.on("reload", () => {
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 3000);
         });
         this.socket.on("auth-required", () => {
             this.setState(Object.assign({}, this.state, {
@@ -172,6 +172,8 @@ class Game extends React.Component {
         });
         this.socket.on("auth-token", (token) => {
             this.authToken = token;
+            if (this.avatarId)
+                this.socket.emit("update-avatar", this.avatarId);
         });
         document.title = `Memexit - ${initArgs.roomId}`;
         this.socket.emit("init", initArgs);
@@ -187,8 +189,6 @@ class Game extends React.Component {
         this.masterSound.volume = 0.7;
         this.dealSound = new Audio("deal.mp3");
         this.dealSound.volume = 0.3;
-        if (this.avatarId)
-            this.socket.emit("update-avatar", this.avatarId);
     }
 
     constructor() {
@@ -230,6 +230,10 @@ class Game extends React.Component {
 
     handleChangeTime(value, type) {
         this.socket.emit("set-time", type, value);
+    }
+
+    handleChangeGroupURI(value) {
+        this.socket.emit("set-group-uri", value);
     }
 
     handleClickChangeName() {
@@ -533,6 +537,15 @@ class Game extends React.Component {
                                                                                   && this.handleChangeTime(evt.target.valueAsNumber, "votingTime")}
                                             />) : (<span className="value">{this.state.votingTime}</span>)}
                                         </div>
+                                    </div>
+                                </div>
+                                <div className="little-controls">
+                                    <div className="game-settings">
+                                        {(isHost && !inProcess) ? <input id="group-uri"
+                                                                         defaultValue={this.state.groupURI}
+                                                                         onChange={evt => this.handleChangeGroupURI(evt.target.value)}
+                                            />
+                                            : (<span className="value">{this.state.groupURI}</span>)}
                                     </div>
                                 </div>
                             </div>) : ""}

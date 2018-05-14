@@ -628,3 +628,8 @@ input#command-input {
     background-repeat: no-repeat;
     background-position: center;
 }
+
+#group-uri {
+    width: 207px;
+    margin-top: 5px;
+}
