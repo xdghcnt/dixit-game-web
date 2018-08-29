@@ -56,7 +56,7 @@ class Avatar extends React.Component {
     render() {
         const
             hasAvatar = !!this.props.data.playerAvatars[this.props.player],
-            avatarURI = `/avatars/${this.props.player}/${this.props.data.playerAvatars[this.props.player]}.png`;
+            avatarURI = `/memexit/avatars/${this.props.player}/${this.props.data.playerAvatars[this.props.player]}.png`;
         return (
             <div className={
                 "avatar"
@@ -108,18 +108,20 @@ class Game extends React.Component {
         const initArgs = {};
         if (!parseInt(localStorage.darkTheme))
             document.body.classList.add("dark-theme");
-        if (!localStorage.userId) {
+        if (!localStorage.userId || !localStorage.token) {
             while (!localStorage.userName)
                 localStorage.userName = prompt("Your name");
             localStorage.userId = makeId();
+            localStorage.token = makeId();
         }
         if (!location.hash)
             location.hash = makeId();
-        this.avatarId = localStorage.avatarId;
+        initArgs.avatarId = this.avatarId = localStorage.avatarId;
         initArgs.roomId = location.hash.substr(1);
         initArgs.userId = this.userId = localStorage.userId;
+        initArgs.token = this.userToken = localStorage.token;
         initArgs.userName = localStorage.userName;
-        this.socket = io();
+        this.socket = window.socket.of("memexit");
         this.player = {cards: []};
         this.socket.on("state", state => {
             if (this.state.phase && state.phase !== 0 && !parseInt(localStorage.muteSounds)) {
@@ -170,25 +172,27 @@ class Game extends React.Component {
             else
                 setTimeout(() => window.location.reload(), 3000)
         });
-        this.socket.on("auth-token", (token) => {
-            this.authToken = token;
-            if (this.avatarId)
-                this.socket.emit("update-avatar", this.avatarId);
-        });
         document.title = `Memexit - ${initArgs.roomId}`;
         this.socket.emit("init", initArgs);
-        this.timerSound = new Audio("tick.mp3");
+        this.timerSound = new Audio("/memexit/tick.mp3");
         this.timerSound.volume = 0.4;
-        this.tapSound = new Audio("tap.mp3");
+        this.tapSound = new Audio("/memexit/tap.mp3");
         this.tapSound.volume = 0.3;
-        this.storySound = new Audio("start.mp3");
+        this.storySound = new Audio("/memexit/start.mp3");
         this.storySound.volume = 0.4;
-        this.revealSound = new Audio("reveal.mp3");
+        this.revealSound = new Audio("/memexit/reveal.mp3");
         this.revealSound.volume = 0.3;
-        this.masterSound = new Audio("master.mp3");
+        this.masterSound = new Audio("/memexit/master.mp3");
         this.masterSound.volume = 0.7;
-        this.dealSound = new Audio("deal.mp3");
+        this.dealSound = new Audio("/memexit/deal.mp3");
         this.dealSound.volume = 0.3;
+    }
+
+    debouncedEmit(event, data) {
+        clearTimeout(this.debouncedEmitTimer);
+        this.debouncedEmitTimer = setTimeout(() => {
+            this.socket.emit(event, data);
+        }, 100);
     }
 
     constructor() {
@@ -229,7 +233,7 @@ class Game extends React.Component {
     }
 
     handleChangeTime(value, type) {
-        this.socket.emit("set-time", type, value);
+        this.debouncedEmit("set-time", type, value);
     }
 
     handleChangeGroupURI(value) {
@@ -254,7 +258,7 @@ class Game extends React.Component {
 
     sendAvatar(file) {
         const
-            uri = "/upload-avatar",
+            uri = "/memexit/upload-avatar",
             xhr = new XMLHttpRequest(),
             fd = new FormData(),
             fileSize = ((file.size / 1024) / 1024).toFixed(4); // MB
@@ -269,7 +273,7 @@ class Game extends React.Component {
             };
             fd.append("avatar", file);
             fd.append("userId", this.userId);
-            fd.append("authToken", this.authToken);
+            fd.append("userToken", this.userToken);
             xhr.send(fd);
         }
         else
