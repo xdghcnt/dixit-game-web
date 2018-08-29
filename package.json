@@ -1,10 +1,9 @@
 {
-    "name": "dixit",
+    "name": "memexit",
     "version": "0.0.0",
     "private": true,
     "files": [
         "module.js",
-        "words.json",
         "public"
     ],
     "dependencies": {
