@@ -188,10 +188,10 @@ class Game extends React.Component {
         this.dealSound.volume = 0.3;
     }
 
-    debouncedEmit(event, data) {
+    debouncedEmit() {
         clearTimeout(this.debouncedEmitTimer);
         this.debouncedEmitTimer = setTimeout(() => {
-            this.socket.emit(event, data);
+            this.socket.emit.apply(this.socket, arguments);
         }, 100);
     }
 
