@@ -122,7 +122,7 @@ function init(wsServer, path, vkToken) {
                         photo_sizes: 1,
                         count: 1,
                         offset: getRandomInt(0, room.groupCount - 1)
-                    }).then(data => data.items[0].sizes[data.items[0].sizes.length - 1].src))
+                    }).then(data => data.items[0].sizes[data.items[0].sizes.length - 1].url))
                 ),
                 getNextPlayer = () => {
                     const nextPlayerIndex = [...room.players].indexOf(room.currentPlayer) + 1;
@@ -189,23 +189,24 @@ function init(wsServer, path, vkToken) {
                     });
                 },
                 startGame = () => {
-                    getGroupInfo()
-                        .then(() => {
-                            room.paused = false;
-                            room.teamsLocked = true;
-                            room.playerWin = null;
-                            room.time = null;
-                            room.playerScores = {};
-                            room.deskCards = [];
-                            [...room.players].forEach((id) => player[id].cards = []);
-                            clearInterval(interval);
-                            startRound();
-                        })
-                        .catch((error) => {
-                            endGame();
-                            send(room.hostId, "message", error.message || error);
-                            update();
-                        });
+                    if (room.players.size > 2)
+                        getGroupInfo()
+                            .then(() => {
+                                room.paused = false;
+                                room.teamsLocked = true;
+                                room.playerWin = null;
+                                room.time = null;
+                                room.playerScores = {};
+                                room.deskCards = [];
+                                [...room.players].forEach((id) => player[id].cards = []);
+                                clearInterval(interval);
+                                startRound();
+                            })
+                            .catch((error) => {
+                                endGame();
+                                send(room.hostId, "message", error.message || error);
+                                update();
+                            });
                 },
                 endGame = () => {
                     room.paused = true;
