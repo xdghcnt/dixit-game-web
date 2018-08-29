@@ -7,7 +7,10 @@ function init(wsServer, path, vkToken) {
         exec = require("child_process").exec,
         app = wsServer.app,
         users = wsServer.users.of("memexit"),
-        log = (msg) => console.log(msg);
+        log = (msg) => {
+            fs.appendFile(`${__dirname}/memexit-logs.txt`, `${msg}\n`, () => {
+            })
+        };
 
     const vk = new VK();
     vk.setToken(vkToken);
