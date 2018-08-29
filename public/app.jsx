@@ -373,7 +373,8 @@ class Game extends React.Component {
                 data = this.state,
                 isHost = data.hostId === data.userId,
                 inProcess = data.phase !== 0 && !data.paused || data.loadingCards,
-                isMaster = data.currentPlayer === data.userId;
+                isMaster = data.currentPlayer === data.userId,
+                parentDir = location.pathname.match(/(.+?)\//)[1];
             let status = "";
             if (data.phase !== 0 && data.timed) {
                 let timeStart = new Date();
@@ -554,6 +555,8 @@ class Game extends React.Component {
                                 </div>
                             </div>) : ""}
                             <div className="side-buttons">
+                                <i onClick={() => window.location = parentDir}
+                                   className="material-icons exit settings-button">exit_to_app</i>
                                 {isHost ? (!inProcess
                                     ? (<i onClick={() => this.handleClickTogglePause()}
                                           className="material-icons start-game settings-button">play_arrow</i>)

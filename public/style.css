@@ -93,7 +93,7 @@ body {
 }
 
 .little-controls input {
-    width: 39px;
+    width: 45px;
     background: transparent;
     border: 1px solid;
     color: #cccaca;
@@ -630,6 +630,6 @@ input#command-input {
 }
 
 #group-uri {
-    width: 207px;
+    width: 228px;
     margin-top: 5px;
 }
