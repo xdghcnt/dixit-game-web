@@ -490,7 +490,7 @@ function init(wsServer, path, vkToken) {
                         room[type] = parseFloat(value);
                     update();
                 },
-                "change-name": (user) => {
+                "change-name": (user, value) => {
                     if (value)
                         room.playerNames[user] = value.substr && value.substr(0, 60);
                     update();
