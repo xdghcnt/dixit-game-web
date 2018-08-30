@@ -21,6 +21,7 @@ function init(wsServer, path, vkToken) {
     }));
 
     app.post("/memexit/upload-avatar", function (req, res) {
+        users.registry.log(`memexit - ${req.body.userId} - upload-avatar`);
         if (req.files && req.files.avatar && wsServer.users.checkUserToken(req.body.userId, req.body.userToken)) {
             const userDir = `${__dirname}/public/avatars/${req.body.userId}`;
             exec(`rm -r ${userDir}`, () => {
@@ -40,33 +41,6 @@ function init(wsServer, path, vkToken) {
     app.use("/memexit", express.static(`${__dirname}/public`));
     app.get(path, function (req, res) {
         res.sendFile(`${__dirname}/public/app.html`);
-    });
-
-    const
-        rooms = new Map(),
-        onlineUsers = new Map();
-    users.on("user-joined", (id, data) => {
-        if (data.roomId) {
-            if (!rooms.has(data.roomId))
-                rooms.set(data.roomId, new GameState(id, data, users));
-            rooms.get(data.roomId).userJoin(data);
-            onlineUsers.set(data.userId, data.roomId);
-        }
-    });
-    users.on("user-left", (id) => {
-        if (onlineUsers.has(id)) {
-            const roomId = onlineUsers.get(id);
-            if (rooms.has(roomId))
-                rooms.get(roomId).userLeft(id);
-            onlineUsers.delete(id);
-        }
-    });
-    users.on("user-event", (id, event, data) => {
-        if (onlineUsers.has(id)) {
-            const roomId = onlineUsers.get(id);
-            if (rooms.has(roomId))
-                rooms.get(roomId).userEvent(id, event, data);
-        }
     });
 
     class GameState {
@@ -104,6 +78,7 @@ function init(wsServer, path, vkToken) {
                 },
                 state = {},
                 player = {};
+            this.room = room;
             let interval;
             const
                 send = (target, event, data) => userRegistry.send(target, event, data),
@@ -419,7 +394,7 @@ function init(wsServer, path, vkToken) {
                             this.eventHandlers[event](user, data[0], data[1], data[2]);
                     } catch (error) {
                         console.error(error);
-                        wsServer.users.log(error.message);
+                        users.registry.log(error.message);
                     }
                 };
             this.userJoin = userJoin;
@@ -562,6 +537,8 @@ function init(wsServer, path, vkToken) {
             return [...this]
         }
     }
+
+    new users.registry.RoomManager(users, GameState);
 }
 
 module.exports = init;
