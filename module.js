@@ -508,6 +508,10 @@ function init(wsServer, path, vkToken) {
                 }
             };
         }
+
+        getPlayerCount() {
+            return Object.keys(this.room.playerNames).length;
+        }
     }
 
     function makeId() {
