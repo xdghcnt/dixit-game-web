@@ -366,7 +366,7 @@ class Game extends React.Component {
 
     render() {
         clearTimeout(this.timerTimeout);
-        if (!this.state.authRequired && this.state.inited && !this.state.playerNames[this.state.userId])
+        if (this.state.disconnected)
             return (<div
                 className="kicked">Disconnected{this.state.disconnectReason ? ` (${this.state.disconnectReason})` : ""}</div>);
         else if (this.state.inited) {
