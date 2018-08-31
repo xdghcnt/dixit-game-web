@@ -1,6 +1,7 @@
 function init(wsServer, path, vkToken) {
     const
         fs = require("fs"),
+        EventEmitter = require("events"),
         express = require("express"),
         {VK} = require("vk-io"),
         fileUpload = require("express-fileupload"),
@@ -43,8 +44,9 @@ function init(wsServer, path, vkToken) {
         res.sendFile(`${__dirname}/public/app.html`);
     });
 
-    class GameState {
+    class GameState extends EventEmitter {
         constructor(hostId, hostData, userRegistry) {
+            super();
             const
                 room = {
                     inited: true,
@@ -79,9 +81,13 @@ function init(wsServer, path, vkToken) {
                 state = {},
                 player = {};
             this.room = room;
+            this.lastInteraction = new Date();
             let interval;
             const
-                send = (target, event, data) => userRegistry.send(target, event, data),
+                send = (target, event, data) => {
+                    this.lastInteraction = new Date();
+                    userRegistry.send(target, event, data);
+                },
                 update = () => send(room.onlinePlayers, "state", room),
                 updatePlayerState = () => {
                     [...room.activePlayers].forEach(playerId => {
@@ -479,8 +485,10 @@ function init(wsServer, path, vkToken) {
                     update();
                 },
                 "give-host": (user, playerId) => {
-                    if (playerId && user === room.hostId)
+                    if (playerId && user === room.hostId) {
                         room.hostId = playerId;
+                        this.emit("host-changed", user, playerId);
+                    }
                     update();
                 },
                 "players-join": (user) => {
@@ -511,6 +519,14 @@ function init(wsServer, path, vkToken) {
 
         getPlayerCount() {
             return Object.keys(this.room.playerNames).length;
+        }
+
+        getActivePlayerCount() {
+            return this.room.onlinePlayers.size;
+        }
+
+        getLastInteraction() {
+            return this.lastInteraction;
         }
     }
 
