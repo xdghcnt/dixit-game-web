@@ -7,7 +7,8 @@ function init(wsServer, path, vkToken) {
         fileUpload = require("express-fileupload"),
         exec = require("child_process").exec,
         app = wsServer.app,
-        users = wsServer.users.of("memexit"),
+        registry = wsServer.users,
+        channel = "memexit",
         log = (msg) => {
             fs.appendFile(`${__dirname}/memexit-logs.txt`, `${msg}\n`, () => {
             })
@@ -22,8 +23,8 @@ function init(wsServer, path, vkToken) {
     }));
 
     app.post("/memexit/upload-avatar", function (req, res) {
-        users.registry.log(`memexit - ${req.body.userId} - upload-avatar`);
-        if (req.files && req.files.avatar && wsServer.users.checkUserToken(req.body.userId, req.body.userToken)) {
+        registry.log(`memexit - ${req.body.userId} - upload-avatar`);
+        if (req.files && req.files.avatar && registry.checkUserToken(req.body.userId, req.body.userToken)) {
             const userDir = `${__dirname}/public/avatars/${req.body.userId}`;
             exec(`rm -r ${userDir}`, () => {
                 fs.mkdir(userDir, () => {
@@ -81,6 +82,8 @@ function init(wsServer, path, vkToken) {
                 state = {},
                 player = {};
             this.room = room;
+            this.state = state;
+            this.player = player;
             this.lastInteraction = new Date();
             let interval;
             const
@@ -91,7 +94,8 @@ function init(wsServer, path, vkToken) {
                 update = () => send(room.onlinePlayers, "state", room),
                 updatePlayerState = () => {
                     [...room.activePlayers].forEach(playerId => {
-                        send(playerId, "player-state", player[playerId]);
+                        if (room.onlinePlayers.has(playerId))
+                            send(playerId, "player-state", player[playerId]);
                     });
                 },
                 getGroupInfo = () => new Promise((resolve, reject) => {
@@ -191,7 +195,7 @@ function init(wsServer, path, vkToken) {
                     });
                 },
                 startGame = () => {
-                    if (room.players.size > 2)
+                    if (room.players.size > 1)
                         getGroupInfo()
                             .then(() => {
                                 room.paused = false;
@@ -400,12 +404,13 @@ function init(wsServer, path, vkToken) {
                             this.eventHandlers[event](user, data[0], data[1], data[2]);
                     } catch (error) {
                         console.error(error);
-                        users.registry.log(error.message);
+                        registry.log(error.message);
                     }
                 };
             this.userJoin = userJoin;
             this.userLeft = userLeft;
             this.userEvent = userEvent;
+            this.getGroupInfo = getGroupInfo;
             this.eventHandlers = {
                 "update-avatar": (user, id) => {
                     room.playerAvatars[user] = id;
@@ -528,6 +533,28 @@ function init(wsServer, path, vkToken) {
         getLastInteraction() {
             return this.lastInteraction;
         }
+
+        getSnapshot() {
+            return {
+                room: this.room,
+                state: this.state,
+                player: this.player
+            };
+        }
+
+        setSnapshot(snapshot) {
+            Object.assign(this.room, snapshot.room);
+            Object.assign(this.state, snapshot.state);
+            Object.assign(this.player, snapshot.player);
+            this.room.paused = true;
+            this.room.activePlayers = new JSONSet(this.room.activePlayers);
+            this.room.onlinePlayers = new JSONSet(this.room.onlinePlayers);
+            this.room.players = new JSONSet(this.room.players);
+            this.room.readyPlayers = new JSONSet(this.room.readyPlayers);
+            this.room.spectators = new JSONSet(this.room.spectators);
+            this.room.onlinePlayers.clear();
+            this.getGroupInfo();
+        }
     }
 
     function makeId() {
@@ -558,7 +585,7 @@ function init(wsServer, path, vkToken) {
         }
     }
 
-    new users.registry.RoomManager(users, GameState);
+    registry.createRoomManager(path, channel, GameState);
 }
 
 module.exports = init;
