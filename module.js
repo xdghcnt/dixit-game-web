@@ -347,7 +347,7 @@ function init(wsServer, path, vkToken) {
                         else
                             addPoints(card.owner, card.votes.length);
                     });
-                    const scores = [...room.activePlayers].map(playerId => room.playerScores[playerId] || 0).sort().reverse();
+                    const scores = [...room.activePlayers].map(playerId => room.playerScores[playerId] || 0).sort((a, b) => a - b).reverse();
                     if (scores[0] > scores[1]) {
                         room.playerLeader = [...room.activePlayers].filter(playerId => room.playerScores[playerId] === scores[0])[0];
                         if (scores[0] >= room.goal)
@@ -514,10 +514,6 @@ function init(wsServer, path, vkToken) {
                         room.spectators.add(user);
                         update();
                     }
-                },
-                "ping": (user) => {
-                    room.onlinePlayers.add(user);
-                    update();
                 }
             };
         }
