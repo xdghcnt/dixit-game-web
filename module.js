@@ -4,6 +4,7 @@ function init(wsServer, path, vkToken) {
         EventEmitter = require("events"),
         express = require("express"),
         {VK} = require("vk-io"),
+        randomColor = require('randomcolor'),
         fileUpload = require("express-fileupload"),
         exec = require("child_process").exec,
         app = wsServer.app,
@@ -71,12 +72,14 @@ function init(wsServer, path, vkToken) {
                     masterTime: 60,
                     teamTime: 40,
                     votingTime: 40,
+                    timeUpdated: false,
                     goal: 30,
                     time: null,
                     paused: true,
                     loadingCards: false,
                     authRequired: false,
                     playerAvatars: {},
+                    needNewCards: true,
                     groupURI: "https://vk.com/ayy_memes"
                 },
                 state = {},
@@ -157,25 +160,25 @@ function init(wsServer, path, vkToken) {
                                     }
                                     else if (room.phase === 2) {
                                         [...room.activePlayers].forEach(playerId => {
-                                            if (room.currentPlayer !== playerId && !room.readyPlayers.has(playerId))
-                                                playCard(playerId, getRandomInt(0, 6));
+                                            if (room.currentPlayer !== playerId && !room.readyPlayers.has(playerId)) {
+                                                room.players.delete(playerId);
+                                                room.activePlayers.delete(playerId);
+                                                room.spectators.add(playerId);
+                                            }
                                         });
                                     }
                                     else if (room.phase === 3) {
                                         [...room.activePlayers].forEach(playerId => {
                                             if (room.phase === 3 && room.currentPlayer !== playerId && !room.readyPlayers.has(playerId)) {
-                                                if (room.activePlayers.size > 1) {
-                                                    let randomCard;
-                                                    while (randomCard === undefined) {
-                                                        let rand = getRandomInt(0, room.activePlayers.size - 1);
-                                                        if (rand !== player[playerId].cardOnDesk)
-                                                            randomCard = rand;
-                                                    }
-                                                    voteCard(playerId, randomCard);
-                                                } else endGame();
+                                                room.players.delete(playerId);
+                                                room.activePlayers.delete(playerId);
+                                                room.spectators.add(playerId);
                                             }
                                         });
+                                        endRound();
                                     }
+                                    if (room.activePlayers.size < 3)
+                                        endRound();
                                     update();
                                 }
                             } else time = new Date();
@@ -185,17 +188,20 @@ function init(wsServer, path, vkToken) {
                 dealCards = () => {
                     let cardsRequired = 0;
                     [...room.activePlayers].forEach(playerId => {
-                        cardsRequired += 6 - player[playerId].cards.length;
+                        cardsRequired += 6 - player[playerId].cards.length - player[playerId].keepCards.size;
                     });
                     return getCards(cardsRequired).then((newCards) => {
                         [...room.activePlayers].forEach(playerId => {
+                            if (player[playerId].keepCards.size)
+                                player[playerId].cards = [...player[playerId].keepCards].map((index) => player[playerId].prevCards[index]);
+                            player[playerId].keepCards.clear();
                             player[playerId].cards = player[playerId].cards.concat(newCards.splice(0, 6 - player[playerId].cards.length))
                         });
                         updatePlayerState();
                     });
                 },
                 startGame = () => {
-                    if (room.players.size > 1)
+                    if (room.players.size > 2)
                         getGroupInfo()
                             .then(() => {
                                 room.paused = false;
@@ -204,90 +210,116 @@ function init(wsServer, path, vkToken) {
                                 room.time = null;
                                 room.playerScores = {};
                                 room.deskCards = [];
-                                [...room.players].forEach((id) => player[id].cards = []);
+                                if (room.needNewCards)
+                                    [...room.players].forEach((id) => player[id].cards = []);
                                 clearInterval(interval);
                                 startRound();
                             })
                             .catch((error) => {
-                                endGame();
+                                registry.log(`memexit - VK group info error - ${error.message}`);
+                                endRound();
                                 send(room.hostId, "message", error.message || error);
                                 update();
                             });
+                    else {
+                        room.paused = true;
+                        room.teamsLocked = false;
+                    }
                 },
                 endGame = () => {
                     room.paused = true;
+                    room.loadingCards = false;
                     room.teamsLocked = false;
                     room.time = null;
+                    room.needNewCards = true;
                     room.phase = 0;
                     clearInterval(interval);
                 },
                 endRound = () => {
                     revealVotes();
                     countPoints();
-                    room.activePlayers.clear();
+                    room.readyPlayers.clear();
                     room.currentPlayer = getNextPlayer();
-                    if (!room.playerWin && room.players.size > 1)
+                    if (!room.playerWin)
                         startRound();
                     else
                         endGame();
                 },
                 startRound = () => {
                     log(`round started ${printState()}`);
-                    room.command = null;
                     room.readyPlayers.clear();
-                    room.phase = 1;
-                    [...room.players].forEach(playerId => room.activePlayers.add(playerId));
-                    [...room.players].forEach(playerId => {
-                        player[playerId].cardOnDesk = null;
-                        player[playerId].playedCard = null;
-                        player[playerId].votedCard = null;
-                    });
+                    room.activePlayers.clear();
+                    room.command = null;
                     room.paused = true;
-                    startTimer();
-                    room.loadingCards = true;
-                    dealCards().then(() => {
-                        room.loadingCards = false;
-                        room.paused = false;
-                        update();
-                    });
+                    if (room.players.size > 2) {
+                        room.phase = 1;
+                        [...room.players].forEach(playerId => room.activePlayers.add(playerId));
+                        [...room.players].forEach(playerId => {
+                            player[playerId].cardOnDesk = null;
+                            player[playerId].playedCard = null;
+                            player[playerId].votedCard = null;
+                        });
+                        startTimer();
+                        room.loadingCards = true;
+                        dealCards().then(() => {
+                            room.loadingCards = false;
+                            room.needNewCards = false;
+                            room.paused = false;
+                            update();
+                        }).catch((error) => {
+                            registry.log(`memexit - VK get cards error - ${error.message}`);
+                            endRound();
+                            send(room.hostId, "message", error.message || error);
+                            update();
+                        });
+                    } else {
+                        room.phase = 0;
+                        room.teamsLocked = false;
+                    }
                     update();
                 },
                 addCommand = (user, command) => {
                     const cardId = player[room.currentPlayer].playedCard;
                     if (cardId !== null) {
-                        room.deskCards = [];
-                        room.teamsLocked = true;
-                        room.command = command;
-                        room.readyPlayers.add(user);
-                        state.masterPlayedCard = player[user].cards[cardId];
-                        player[user].cards.splice(cardId, 1);
-                        player[user].playedCard = null;
-                        room.phase = 2;
-                        startTimer();
-                        updatePlayerState();
+                        if (room.activePlayers.size > 2) {
+                            room.deskCards = [];
+                            room.teamsLocked = true;
+                            room.command = command;
+                            room.readyPlayers.add(user);
+                            state.masterPlayedCard = player[user].cards[cardId];
+                            player[user].cards.splice(cardId, 1);
+                            player[user].playedCard = null;
+                            room.phase = 2;
+                            startTimer();
+                            updatePlayerState();
+                        } else endRound();
                     }
                 },
                 playCard = (playerId, cardIndex) => {
                     if (player[playerId].playedCard !== cardIndex) {
                         player[playerId].playedCard = cardIndex;
                         room.readyPlayers.add(playerId);
-                        if (room.readyPlayers.size === room.activePlayers.size) {
-                            room.readyPlayers.clear();
-                            room.phase = 3;
+                        if (room.phase === 2 && room.readyPlayers.size === room.activePlayers.size)
                             revealCards();
-                            startTimer();
-                        }
                     } else {
                         player[playerId].playedCard = null;
                         room.readyPlayers.delete(playerId);
                     }
                     updatePlayerState();
                 },
+                keepCard = (playerId, cardIndex) => {
+                    player[playerId].prevCards = player[playerId].cards;
+                    if (!player[playerId].keepCards.has(cardIndex)) {
+                        if (player[playerId].keepCards.size < 3)
+                            player[playerId].keepCards.add(cardIndex);
+                    } else player[playerId].keepCards.delete(cardIndex);
+                    updatePlayerState();
+                },
                 voteCard = (playerId, cardIndex) => {
                     if (player[playerId].votedCard !== cardIndex) {
                         player[playerId].votedCard = cardIndex;
                         room.readyPlayers.add(playerId);
-                        if (room.readyPlayers.size === room.activePlayers.size - 1)
+                        if (room.phase === 3 && room.readyPlayers.size === room.activePlayers.size - 1)
                             endRound();
                     } else {
                         player[playerId].votedCard = null;
@@ -296,23 +328,28 @@ function init(wsServer, path, vkToken) {
                     updatePlayerState();
                 },
                 revealCards = () => {
-                    room.deskCards = [];
-                    shuffleArray([...room.activePlayers]).forEach((playerId, index) => {
-                        room.deskCards.push({
-                            img: playerId !== room.currentPlayer
-                                ? player[playerId].cards.splice(player[playerId].playedCard, 1)[0]
-                                : state.masterPlayedCard,
-                            owner: null,
-                            votes: []
+                    if (room.activePlayers.size > 2) {
+                        room.readyPlayers.clear();
+                        room.phase = 3;
+                        room.deskCards = [];
+                        shuffleArray([...room.activePlayers]).forEach((playerId, index) => {
+                            room.deskCards.push({
+                                img: playerId !== room.currentPlayer
+                                    ? player[playerId].cards.splice(player[playerId].playedCard, 1)[0]
+                                    : state.masterPlayedCard,
+                                owner: null,
+                                votes: []
+                            });
+                            player[playerId].playedCard = null;
+                            player[playerId].cardOnDesk = index;
                         });
-                        player[playerId].playedCard = null;
-                        player[playerId].cardOnDesk = index;
-                    });
+                        startTimer();
+                    } else endRound();
                     updatePlayerState();
                     update();
                 },
                 revealVotes = () => {
-                    [...room.activePlayers].forEach(playerId => {
+                    [...new Set([...room.activePlayers, ...room.spectators, ...room.players])].forEach(playerId => {
                         const
                             playerPlayedCard = room.deskCards[player[playerId].cardOnDesk],
                             playerVotedCard = room.deskCards[player[playerId].votedCard];
@@ -360,16 +397,14 @@ function init(wsServer, path, vkToken) {
                     if (room.playerScores[playerId] < 0)
                         room.playerScores[playerId] = 0;
                 },
-                getRandomColor = () => {
-                    return "#" + ((1 << 24) * Math.random() | 0).toString(16);
-                },
                 removePlayer = (playerId) => {
-                    room.onlinePlayers.delete(playerId);
-                    room.activePlayers.delete(playerId);
-                    room.players.delete(playerId);
-                    room.spectators.delete(playerId);
-                    if (room.currentPlayer === playerId)
-                        startRound();
+                    if (room.spectators.has(playerId))
+                        registry.disconnectUser(playerId, "Kicked");
+                    else {
+                        room.activePlayers.delete(playerId);
+                        room.players.delete(playerId);
+                        room.spectators.add(playerId);
+                    }
                 },
                 printState = () => `\m player-state: ${JSON.stringify(player, null, 4)} \n game-state: ${JSON.stringify(room, null, 4)}`,
                 userJoin = (data) => {
@@ -380,14 +415,22 @@ function init(wsServer, path, vkToken) {
                             cards: [],
                             playedCard: null,
                             cardOnDesk: null,
-                            votedCard: null
+                            votedCard: null,
+                            keepCards: new JSONSet(),
+                            prevCards: null
                         };
                     }
-                    room.playerColors[user] = room.playerColors[user] || getRandomColor();
+                    room.playerColors[user] = room.playerColors[user] || randomColor();
                     room.onlinePlayers.add(user);
                     room.playerNames[user] = data.userName.substr && data.userName.substr(0, 60);
-                    if (data.avatarId)
-                        room.playerAvatars[user] = data.avatarId;
+                    if (data.avatarId) {
+                        fs.stat(`${__dirname}/public/avatars/${user}/${data.avatarId}.png`, (err) => {
+                            if (!err) {
+                                room.playerAvatars[user] = data.avatarId;
+                                update()
+                            }
+                        });
+                    }
                     update();
                     updatePlayerState();
                 },
@@ -422,7 +465,7 @@ function init(wsServer, path, vkToken) {
                     update();
                 },
                 "toggle-lock": (user) => {
-                    if (user === room.hostId)
+                    if (user === room.hostId && room.paused)
                         room.teamsLocked = !room.teamsLocked;
                     update();
                 },
@@ -432,8 +475,12 @@ function init(wsServer, path, vkToken) {
                     update();
                 },
                 "play-card": (user, cardIndex) => {
-                    if (room.activePlayers.has(user) && cardIndex != null && (room.currentPlayer === user ? room.phase === 1 : room.phase === 2))
-                        playCard(user, cardIndex);
+                    if (room.activePlayers.has(user) && cardIndex != null && cardIndex >= 0 && cardIndex < 6) {
+                        if (room.currentPlayer === user ? room.phase === 1 : room.phase === 2)
+                            playCard(user, cardIndex);
+                        else if (room.playerWin)
+                            keepCard(user, cardIndex);
+                    }
                     update();
                 },
                 "vote-card": (user, cardIndex) => {
@@ -449,16 +496,25 @@ function init(wsServer, path, vkToken) {
                 "toggle-pause": (user) => {
                     if (user === room.hostId && !room.loadingCards) {
                         room.paused = !room.paused;
-                        if (!room.paused)
+                        if (!room.paused) {
                             room.teamsLocked = true;
+                            if (room.phase !== 0 && room.activePlayers.size < 3)
+                                endRound();
+                            else if (room.timeUpdated) {
+                                room.timeUpdated = false;
+                                startTimer();
+                            }
+                        }
                         if (room.phase === 0)
                             startGame();
                     }
                     update();
                 },
                 "restart": (user) => {
-                    if (user === room.hostId)
+                    if (user === room.hostId) {
+                        room.needNewCards = true;
                         startGame();
+                    }
                     update();
                 },
                 "toggle-timed": (user) => {
@@ -472,8 +528,15 @@ function init(wsServer, path, vkToken) {
                     update();
                 },
                 "set-time": (user, type, value) => {
-                    if (user === room.hostId && ~["masterTime", "teamTime", "votingTime"].indexOf(type) && !isNaN(parseInt(value)))
+                    if (user === room.hostId && ~["masterTime", "teamTime", "votingTime"].indexOf(type) && !isNaN(parseInt(value))) {
                         room[type] = parseFloat(value);
+                        room.timeUpdated = true;
+                    }
+                    update();
+                },
+                "set-goal": (user, value) => {
+                    if (user === room.hostId && !isNaN(parseInt(value)))
+                        room.goal = parseInt(value);
                     update();
                 },
                 "change-name": (user, value) => {

@@ -32,20 +32,26 @@ class Player extends React.Component {
                 <div className="player-name-section">
                     <span className="player-name">{data.currentPlayer === id ? "> " : ""}{data.playerNames[id]}</span>
                     &nbsp;({data.playerScores[id] || 0})
-                    {(data.hostId === data.userId && data.userId !== id) ? (
-                        <div className="player-host-controls">
+                    <div className="player-host-controls">
+                        {(data.hostId === data.userId && data.userId !== id) ? (
                             <i className="material-icons host-button"
                                title="Give host"
                                onClick={(evt) => this.props.handleGiveHost(id, evt)}>
                                 vpn_key
-                            </i>
+                            </i>) : ""}
+                        {(data.hostId === data.userId && data.userId !== id) ? (
                             <i className="material-icons host-button"
                                title="Remove"
                                onClick={(evt) => this.props.handleRemovePlayer(id, evt)}>
                                 delete_forever
+                            </i>) : ""}
+                        {(data.hostId === id) ? (
+                            <i className="material-icons host-button inactive"
+                               title="Game host">
+                                stars
                             </i>
-                        </div>
-                    ) : ""}
+                        ) : ""}
+                    </div>
                 </div>
             </div>
         );
@@ -67,7 +73,7 @@ class Avatar extends React.Component {
                          : `none`,
                      "background-color": hasAvatar
                          ? `transparent`
-                         : `${this.props.data.playerColors[this.props.player]}`
+                         : this.props.data.playerColors[this.props.player]
                  }}>
                 {!hasAvatar ? (
                     <i className="material-icons avatar-stub">
@@ -81,6 +87,7 @@ class Avatar extends React.Component {
 
 class Card extends React.Component {
     render() {
+        const data = this.props.data;
         return (
             <div className={
                 "card"
@@ -89,14 +96,18 @@ class Card extends React.Component {
                     ? " correct" : "")}
                  onMouseUp={() => this.props.handleCardClick(this.props.id)}>
                 <div className="card-face" style={{"background-image": `url(${this.props.card})`}}
+                     data-img-url={this.props.card}
                      onMouseDown={(evt) => this.props.handleCardPress(evt.target)}
                 />
+                {data.phase === 1 && data.userId === data.currentPlayer ? (
+                    <div className="card-submit"
+                         onMouseDown={(evt) => !evt.stopPropagation() && this.props.handleAddCommandClick()}>➜</div>) : ""}
                 {this.props.cardData && this.props.cardData.owner ? (<div className="card-info">
-                    <div className="card-owner"><Avatar data={this.props.data} player={this.props.cardData.owner}/>
+                    <div className="card-owner"><Avatar data={data} player={this.props.cardData.owner}/>
                     </div>
                     <div className="card-votes">{
                         this.props.cardData.votes.map(vote =>
-                            <Avatar data={this.props.data} player={vote}/>)}</div>
+                            <Avatar data={data} player={vote}/>)}</div>
                 </div>) : ""}
             </div>
         );
@@ -120,7 +131,7 @@ class Game extends React.Component {
             initArgs.acceptDelete = localStorage.acceptDelete;
             delete localStorage.acceptDelete;
         }
-        initArgs.avatarId = this.avatarId = localStorage.avatarId;
+        initArgs.avatarId = localStorage.avatarId;
         initArgs.roomId = location.hash.substr(1);
         initArgs.userId = this.userId = localStorage.userId;
         initArgs.token = this.userToken = localStorage.token;
@@ -247,6 +258,10 @@ class Game extends React.Component {
         this.debouncedEmit("set-time", type, value);
     }
 
+    handleSetGoal(value) {
+        this.debouncedEmit("set-goal", value);
+    }
+
     handleChangeGroupURI(value) {
         this.socket.emit("set-group-uri", value);
     }
@@ -278,8 +293,8 @@ class Game extends React.Component {
             xhr.open("POST", uri, true);
             xhr.onreadystatechange = () => {
                 if (xhr.readyState === 4 && xhr.status === 200) {
-                    this.avatarId = localStorage.avatarId = xhr.responseText;
-                    this.socket.emit("update-avatar", this.avatarId);
+                    localStorage.avatarId = xhr.responseText;
+                    this.socket.emit("update-avatar", localStorage.avatarId);
                 }
             };
             fd.append("avatar", file);
@@ -324,6 +339,7 @@ class Game extends React.Component {
         setTimeout(() => {
             if (!this.wasReleased) {
                 wordNode.classList.add("zoomed");
+                document.body.classList.add("card-zoomed");
                 this.zoomed = true;
             }
         }, 150);
@@ -333,7 +349,14 @@ class Game extends React.Component {
         this.wasReleased = true;
         const zoomed = document.querySelector(".zoomed");
         zoomed && zoomed.classList.remove("zoomed");
+        document.body.classList.remove("card-zoomed");
         this.zoomed = false;
+    }
+
+    handleOpenImage() {
+        const zoomed = document.querySelector(".zoomed");
+        if (zoomed)
+            window.open(zoomed.getAttribute("data-img-url"), "_blank");
     }
 
     handleHandCardClick(index) {
@@ -405,8 +428,10 @@ class Game extends React.Component {
             }
             if (data.loadingCards) {
                 status = "Dealing cards...";
+            } else if (data.playerWin) {
+                status = `You can pick cards to keep for next game`;
             } else if (data.phase === 0) {
-                if (data.players.length > 1)
+                if (data.players.length > 2)
                     status = "Host can start game";
                 else
                     status = "Not enough players";
@@ -447,7 +472,8 @@ class Game extends React.Component {
                                                  onClick={() => this.handleAddCommandClick()}>➜
                                             </div>
                                         </div>) : ""}
-                                    {data.command ? (<div className="command">«{data.command}»</div>) : ""}
+                                    {!data.playerWin ? (data.command ? (<div
+                                        className="command">«{data.command}»</div>) : "") : `The winner is ${data.playerNames[data.playerWin]}!`}
                                     <div className="status-text">{status}</div>
                                 </div>
                                 <div className="timer-section">
@@ -459,14 +485,16 @@ class Game extends React.Component {
                                             <div className="rtb-slice2"/>
                                         </div>
                                         <div className="rtb-content">{
-                                            data.phase === 0 ? (
-                                                <div className="status-bar-circle"><i className="material-icons">{
-                                                    data.players.length > 1 ? "thumb_up" : "block"
-                                                }</i></div>
-                                            ) : (
-                                                (data.phase === 1 || data.phase === 2 || data.phase === 3) ? (
-                                                    <Avatar data={data} player={data.currentPlayer}/>
-                                                ) : <Avatar data={data} player={data.playerLeader}/>)
+                                            !data.playerWin ?
+                                                (data.phase === 0 ? (
+                                                    <div className="status-bar-circle"><i className="material-icons">{
+                                                        data.players.length > 2 ? "thumb_up" : "block"
+                                                    }</i></div>
+                                                ) : (
+                                                    (data.phase === 1 || data.phase === 2 || data.phase === 3) ? (
+                                                        <Avatar data={data} player={data.currentPlayer}/>
+                                                    ) : <Avatar data={data} player={data.playerLeader}/>))
+                                                : (<Avatar data={data} player={data.playerWin}/>)
                                         }
 
                                         </div>
@@ -496,7 +524,7 @@ class Game extends React.Component {
                                         <Player key={id} data={data} id={id}
                                                 handleGiveHost={(id) => this.handleGiveHost(id)}
                                                 handleAvatarClick={() => this.handleClickSetAvatar()}
-                                                handleRemovePlayer={(id) => this.handleRemovePlayer(id)}/>
+                                                handleRemovePlayer={(id, evt) => this.handleRemovePlayer(id, evt)}/>
                                     )))}
                                     {!~data.spectators.indexOf(data.userId) ? (
                                         <div className="join-button">Spectate</div>) : ""}
@@ -515,14 +543,18 @@ class Game extends React.Component {
                             <div className="hand-cards-section">
                                 {data.player.cards.map(((card, id) => (
                                     <Card key={id} data={data} id={id} card={card}
-                                          checked={data.player.playedCard === id}
+                                          checked={data.player.playedCard === id || ~data.player.keepCards.indexOf(id)}
+                                          handleAddCommandClick={() => this.handleAddCommandClick()}
                                           handleCardClick={(id) => this.handleHandCardClick(id)}
                                           handleCardPress={(node) => this.handleCardPress(node)}/>
                                 )))}
                             </div>
                         </div>
+                        <div onMouseUp={() => this.handleOpenImage()} className="card-open-button">
+                            <i className="material-icons">open_in_new</i>
+                        </div>
                         <div className="host-controls">
-                            {isHost && data.timed ? (<div className="host-controls-menu">
+                            {data.timed ? (<div className="host-controls-menu">
                                 <div className="little-controls">
                                     <div className="game-settings">
                                         <div className="set-master-time"><i title="master time"
@@ -554,10 +586,20 @@ class Game extends React.Component {
                                                                                   && this.handleChangeTime(evt.target.valueAsNumber, "votingTime")}
                                             />) : (<span className="value">{this.state.votingTime}</span>)}
                                         </div>
+                                        <div className="set-goal"><i title="goal"
+                                                                     className="material-icons">flag</i>
+                                            {(isHost && !inProcess) ? (<input id="goal"
+                                                                              type="number"
+                                                                              defaultValue={this.state.goal}
+                                                                              min="0"
+                                                                              onChange={evt => !isNaN(evt.target.valueAsNumber)
+                                                                                  && this.handleSetGoal(evt.target.valueAsNumber)}
+                                            />) : (<span className="value">{this.state.goal}</span>)}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="little-controls">
-                                    <div className="game-settings">
+                                    <div className="game-settings group-uri-input">
                                         {(isHost && !inProcess) ? <input id="group-uri"
                                                                          defaultValue={this.state.groupURI}
                                                                          onChange={evt => this.handleChangeGroupURI(evt.target.value)}
@@ -569,22 +611,22 @@ class Game extends React.Component {
                             <div className="side-buttons">
                                 <i onClick={() => window.location = parentDir}
                                    className="material-icons exit settings-button">exit_to_app</i>
-                                {isHost ? (!inProcess
+                                {isHost && !data.loadingCards ? (!inProcess
                                     ? (<i onClick={() => this.handleClickTogglePause()}
                                           className="material-icons start-game settings-button">play_arrow</i>)
                                     : (<i onClick={() => this.handleClickTogglePause()}
                                           className="material-icons start-game settings-button">pause</i>)) : ""}
-                                {(isHost && data.paused) ? (data.teamsLocked
+                                {(isHost && data.paused && !data.loadingCards) ? (data.teamsLocked
                                     ? (<i onClick={() => this.handleToggleTeamLockClick()}
                                           className="material-icons start-game settings-button">lock_outline</i>)
                                     : (<i onClick={() => this.handleToggleTeamLockClick()}
                                           className="material-icons start-game settings-button">lock_open</i>)) : ""}
-                                {(isHost && data.paused) ? (!data.timed
+                                {(isHost && data.paused && !data.loadingCards) ? (!data.timed
                                     ? (<i onClick={() => this.handleToggleTimed()}
                                           className="material-icons start-game settings-button">alarm_off</i>)
                                     : (<i onClick={() => this.handleToggleTimed()}
                                           className="material-icons start-game settings-button">alarm</i>)) : ""}
-                                {(isHost && data.paused)
+                                {(isHost && data.paused && !data.loadingCards)
                                     ? (<i onClick={() => this.handleClickRestart()}
                                           className="toggle-theme material-icons settings-button">sync</i>) : ""}
                                 <i onClick={() => this.handleClickChangeName()}

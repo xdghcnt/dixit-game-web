@@ -44,6 +44,7 @@ body.dark-theme {
     justify-content: space-between;
     min-height: 191px;
     z-index: 1;
+    user-select: none;
 }
 
 .game-board {
@@ -65,7 +66,7 @@ body.dark-theme {
 .player .host-button, .command .host-button {
     font-size: 16px;
     cursor: pointer;
-    vertical-align: text-top;
+    vertical-align: middle;
 }
 
 .kicked {
@@ -93,7 +94,7 @@ body {
 }
 
 .little-controls input {
-    width: 45px;
+    width: 39px;
     background: transparent;
     border: 1px solid;
     color: #cccaca;
@@ -373,6 +374,7 @@ body {
     text-align: center;
     cursor: pointer;
     position: relative;
+    -webkit-user-drag: none;
 }
 
 .dark-theme .card {
@@ -430,11 +432,13 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    -webkit-user-drag: none;
 }
 
 .player {
     white-space: nowrap;
     margin: 6px 0;
+    user-select: none;
 }
 
 .avatar {
@@ -506,7 +510,7 @@ body {
     background-color: white !important;
 }
 
-.dark-theme .round-track-bar .avatar.has-avatar, .dark-theme .card-owner .avatar.has-avatar  {
+.dark-theme .round-track-bar .avatar.has-avatar, .dark-theme .card-owner .avatar.has-avatar {
     background-color: #4e4e4e !important;
 }
 
@@ -630,6 +634,60 @@ input#command-input {
 }
 
 #group-uri {
-    width: 228px;
+    width: 278px;
     margin-top: 5px;
+}
+
+.group-uri-input {
+    user-select: text;
+    cursor: text;
+}
+
+.card-submit {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #4e4e4e;
+    padding: 0 3px;
+    display: none;
+    user-select: none;
+}
+
+.card.checked:hover .card-submit {
+    display: block;
+}
+
+.card-open-button {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    font-size: 45px;
+    background: #ffffff;
+    z-index: 2;
+    user-select: none;
+    color: #000000;
+}
+
+.card-open-button:hover {
+    background: #ffffff;
+    color: #e5efde;
+}
+
+.dark-theme .card-open-button {
+    color: #cccaca;
+    background: #4e4e4e;
+}
+
+.dark-theme .card-open-button:hover {
+    background: #cccaca;
+    color: #202020;
+}
+
+.card-open-button i {
+    font-size: 45px;
+}
+
+.card-zoomed .card-open-button {
+    display: block;
 }
