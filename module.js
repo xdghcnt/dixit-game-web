@@ -11,7 +11,7 @@ function init(wsServer, path, vkToken) {
         registry = wsServer.users,
         channel = "memexit",
         log = (msg) => {
-            fs.appendFile(`${__dirname}/memexit-logs.txt`, `${msg}\n`, () => {
+            fs.appendFile(`${registry.config.appDir || __dirname}/memexit-logs.txt`, `${msg}\n`, () => {
             })
         };
 
@@ -26,7 +26,7 @@ function init(wsServer, path, vkToken) {
     app.post("/memexit/upload-avatar", function (req, res) {
         registry.log(`memexit - ${req.body.userId} - upload-avatar`);
         if (req.files && req.files.avatar && registry.checkUserToken(req.body.userId, req.body.userToken)) {
-            const userDir = `${__dirname}/public/avatars/${req.body.userId}`;
+            const userDir = `${registry.config.appDir || __dirname}/public/avatars/${req.body.userId}`;
             exec(`rm -r ${userDir}`, () => {
                 fs.mkdir(userDir, () => {
                     req.files.avatar.mv(`${userDir}/${req.files.avatar.md5}.png`, function (err) {
@@ -42,6 +42,8 @@ function init(wsServer, path, vkToken) {
         }
     });
     app.use("/memexit", express.static(`${__dirname}/public`));
+    if (registry.config.appDir)
+        app.use("/memexit", express.static(`${registry.config.appDir}/public`));
     app.get(path, function (req, res) {
         res.sendFile(`${__dirname}/public/app.html`);
     });
@@ -61,6 +63,7 @@ function init(wsServer, path, vkToken) {
                     players: new JSONSet(),
                     readyPlayers: new JSONSet(),
                     activePlayers: new JSONSet(),
+                    inactivePlayers: new JSONSet(),
                     playerScores: {},
                     teamsLocked: false,
                     timed: true,
@@ -137,6 +140,14 @@ function init(wsServer, path, vkToken) {
                     const nextPlayerIndex = [...room.players].indexOf(room.currentPlayer) + 1;
                     return [...room.players][(room.players.size === nextPlayerIndex) ? 0 : nextPlayerIndex];
                 },
+                processInactivity = (playerId) => {
+                    if (room.inactivePlayers.has(playerId))
+                        removePlayer(playerId);
+                    else {
+                        room.activePlayers.delete(playerId);
+                        room.inactivePlayers.add(playerId);
+                    }
+                },
                 startTimer = () => {
                     if (room.timed) {
                         clearInterval(interval);
@@ -155,30 +166,24 @@ function init(wsServer, path, vkToken) {
                                     log(`timeout triggered ${printState()}`);
                                     clearInterval(interval);
                                     if (room.phase === 1) {
+                                        processInactivity(room.currentPlayer);
                                         room.currentPlayer = getNextPlayer();
                                         startRound();
                                     }
                                     else if (room.phase === 2) {
                                         [...room.activePlayers].forEach(playerId => {
-                                            if (room.currentPlayer !== playerId && !room.readyPlayers.has(playerId)) {
-                                                room.players.delete(playerId);
-                                                room.activePlayers.delete(playerId);
-                                                room.spectators.add(playerId);
-                                            }
+                                            if (room.currentPlayer !== playerId && !room.readyPlayers.has(playerId))
+                                                processInactivity(playerId);
                                         });
+                                        revealCards();
                                     }
                                     else if (room.phase === 3) {
                                         [...room.activePlayers].forEach(playerId => {
-                                            if (room.phase === 3 && room.currentPlayer !== playerId && !room.readyPlayers.has(playerId)) {
-                                                room.players.delete(playerId);
-                                                room.activePlayers.delete(playerId);
-                                                room.spectators.add(playerId);
-                                            }
+                                            if (room.phase === 3 && room.currentPlayer !== playerId && !room.readyPlayers.has(playerId))
+                                                processInactivity(playerId);
                                         });
                                         endRound();
                                     }
-                                    if (room.activePlayers.size < 3)
-                                        endRound();
                                     update();
                                 }
                             } else time = new Date();
@@ -250,6 +255,7 @@ function init(wsServer, path, vkToken) {
                     room.readyPlayers.clear();
                     room.activePlayers.clear();
                     room.command = null;
+                    const prevPausedState = room.paused;
                     room.paused = true;
                     if (room.players.size > 2) {
                         room.phase = 1;
@@ -264,7 +270,7 @@ function init(wsServer, path, vkToken) {
                         dealCards().then(() => {
                             room.loadingCards = false;
                             room.needNewCards = false;
-                            room.paused = false;
+                            room.paused = prevPausedState;
                             update();
                         }).catch((error) => {
                             registry.log(`memexit - VK get cards error - ${error.message}`);
@@ -282,6 +288,7 @@ function init(wsServer, path, vkToken) {
                     const cardId = player[room.currentPlayer].playedCard;
                     if (cardId !== null) {
                         if (room.activePlayers.size > 2) {
+                            room.inactivePlayers.delete(user);
                             room.deskCards = [];
                             room.teamsLocked = true;
                             room.command = command;
@@ -296,6 +303,7 @@ function init(wsServer, path, vkToken) {
                     }
                 },
                 playCard = (playerId, cardIndex) => {
+                    room.inactivePlayers.delete(playerId);
                     if (player[playerId].playedCard !== cardIndex) {
                         player[playerId].playedCard = cardIndex;
                         room.readyPlayers.add(playerId);
@@ -316,6 +324,7 @@ function init(wsServer, path, vkToken) {
                     updatePlayerState();
                 },
                 voteCard = (playerId, cardIndex) => {
+                    room.inactivePlayers.delete(playerId);
                     if (player[playerId].votedCard !== cardIndex) {
                         player[playerId].votedCard = cardIndex;
                         room.readyPlayers.add(playerId);
@@ -369,8 +378,10 @@ function init(wsServer, path, vkToken) {
                     });
                 },
                 countPoints = () => {
+                    const stats = {command: room.command};
                     room.deskCards.forEach(card => {
                         if (card.owner === room.currentPlayer && card.votes.length > 0) {
+                            stats.img = card.img;
                             if (card.votes.length !== room.activePlayers.size - 1) {
                                 addPoints(card.owner, 3);
                                 addPoints(card.owner, card.votes.length);
@@ -383,6 +394,11 @@ function init(wsServer, path, vkToken) {
                         }
                         else
                             addPoints(card.owner, card.votes.length);
+                    });
+                    const mostVotedCard = [...room.deskCards].sort((a, b) => a.votes - b.votes).reverse()[0];
+                    if (mostVotedCard && stats.img !== mostVotedCard.img)
+                        stats.winImg = mostVotedCard.img;
+                    fs.writeFile(`${registry.config.appDir || __dirname}/memexit-stats.txt`, JSON.stringify(stats), () => {
                     });
                     const scores = [...room.activePlayers].map(playerId => room.playerScores[playerId] || 0).sort((a, b) => a - b).reverse();
                     if (scores[0] > scores[1]) {
@@ -401,6 +417,8 @@ function init(wsServer, path, vkToken) {
                     if (room.spectators.has(playerId))
                         registry.disconnectUser(playerId, "Kicked");
                     else {
+                        if (room.currentPlayer === playerId)
+                            room.currentPlayer = getNextPlayer();
                         room.activePlayers.delete(playerId);
                         room.players.delete(playerId);
                         room.spectators.add(playerId);
@@ -424,7 +442,7 @@ function init(wsServer, path, vkToken) {
                     room.onlinePlayers.add(user);
                     room.playerNames[user] = data.userName.substr && data.userName.substr(0, 60);
                     if (data.avatarId) {
-                        fs.stat(`${__dirname}/public/avatars/${user}/${data.avatarId}.png`, (err) => {
+                        fs.stat(`${registry.config.appDir || __dirname}/public/avatars/${user}/${data.avatarId}.png`, (err) => {
                             if (!err) {
                                 room.playerAvatars[user] = data.avatarId;
                                 update()
@@ -563,6 +581,7 @@ function init(wsServer, path, vkToken) {
                     if (!room.teamsLocked) {
                         room.spectators.delete(user);
                         room.players.add(user);
+                        room.inactivePlayers.delete(user);
                         if (room.players.size === 1)
                             room.currentPlayer = user;
                         update();
@@ -607,6 +626,7 @@ function init(wsServer, path, vkToken) {
             Object.assign(this.player, snapshot.player);
             this.room.paused = true;
             this.room.activePlayers = new JSONSet(this.room.activePlayers);
+            this.room.inactivePlayers = new JSONSet(this.room.inactivePlayers);
             this.room.onlinePlayers = new JSONSet(this.room.onlinePlayers);
             this.room.players = new JSONSet(this.room.players);
             this.room.readyPlayers = new JSONSet(this.room.readyPlayers);
