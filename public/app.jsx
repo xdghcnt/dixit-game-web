@@ -95,16 +95,24 @@ class Card extends React.Component {
                 + (this.props.cardData && this.props.cardData.correct
                     ? " correct" : "")}
                  onMouseUp={() => this.props.handleCardClick(this.props.id)}>
-                <div className="card-face" style={{"background-image": `url(${this.props.card})`}}
+                <div className="card-face-wrap"
                      data-img-url={this.props.card}
-                     onMouseDown={(evt) => this.props.handleCardPress(evt.target)}
-                />
+                     onMouseDown={(evt) => this.props.handleCardPress(evt.currentTarget)}>
+                    <div className="card-face" style={{"background-image": `url(${this.props.card})`}}/>
+                </div>
+                <div className="card-buttons" onMouseDown={(evt) => evt.stopPropagation()}
+                     onMouseUp={(evt) => evt.stopPropagation()}>
+                    <div className="card-button-zoom" onClick={(evt) => this.props.handleZoomClick(evt.currentTarget)}>
+                        <i
+                            className="material-icons">search</i></div>
+                    <div className="card-button-open" onClick={() => this.props.handleOpenClick(this.props.card)}><i
+                        className="material-icons">open_in_new</i></div>
+                </div>
                 {data.phase === 1 && data.userId === data.currentPlayer ? (
                     <div className="card-submit"
                          onMouseDown={(evt) => !evt.stopPropagation() && this.props.handleAddCommandClick()}>➜</div>) : ""}
                 {this.props.cardData && this.props.cardData.owner ? (<div className="card-info">
-                    <div className="card-owner"><Avatar data={data} player={this.props.cardData.owner}/>
-                    </div>
+                    <div className="card-owner"><Avatar data={data} player={this.props.cardData.owner}/></div>
                     <div className="card-votes">{
                         this.props.cardData.votes.map(vote =>
                             <Avatar data={data} player={vote}/>)}</div>
@@ -359,6 +367,23 @@ class Game extends React.Component {
             window.open(zoomed.getAttribute("data-img-url"), "_blank");
     }
 
+    handleNavImage(next) {
+        const zoomed = document.querySelector(".zoomed");
+        if (zoomed) {
+            let
+                cards = zoomed.parentNode.parentNode.childNodes,
+                index = Array.prototype.indexOf.call(cards, zoomed.parentNode),
+                length = cards.length;
+            index += next ? 1 : -1;
+            if (index < 0)
+                index = length - 1;
+            else if (index === length)
+                index = 0;
+            zoomed.classList.remove("zoomed");
+            cards[index].getElementsByClassName("card-face-wrap")[0].classList.add("zoomed");
+        }
+    }
+
     handleHandCardClick(index) {
         if (!this.zoomed)
             this.socket.emit("play-card", index);
@@ -367,6 +392,14 @@ class Game extends React.Component {
     handleDeskCardClick(index) {
         if (!this.zoomed)
             this.socket.emit("vote-card", index);
+    }
+
+    handleCardZoomClick(node) {
+        this.handleCardPress(node.parentNode.parentNode.getElementsByClassName("card-face-wrap")[0]);
+    }
+
+    handleCardOpenClick(img) {
+        window.open(img, "_blank");
     }
 
     updateTimer(time) {
@@ -535,6 +568,8 @@ class Game extends React.Component {
                                     ? data.deskCards.map(((card, id) => (
                                         <Card key={id} data={data} id={id} card={card.img} cardData={card}
                                               checked={data.player.votedCard === id}
+                                              handleZoomClick={(node) => this.handleCardZoomClick(node)}
+                                              handleOpenClick={(img) => this.handleCardOpenClick(img)}
                                               handleCardClick={(id) => this.handleDeskCardClick(id)}
                                               handleCardPress={(node) => this.handleCardPress(node)}/>
                                     )))
@@ -545,13 +580,24 @@ class Game extends React.Component {
                                     <Card key={id} data={data} id={id} card={card}
                                           checked={data.player.playedCard === id || ~data.player.keepCards.indexOf(id)}
                                           handleAddCommandClick={() => this.handleAddCommandClick()}
+                                          handleZoomClick={(node) => this.handleCardZoomClick(node)}
+                                          handleOpenClick={(img) => this.handleCardOpenClick(img)}
                                           handleCardClick={(id) => this.handleHandCardClick(id)}
                                           handleCardPress={(node) => this.handleCardPress(node)}/>
                                 )))}
                             </div>
                         </div>
-                        <div onMouseUp={() => this.handleOpenImage()} className="card-open-button">
+                        <div onMouseUp={(evt) => !evt.stopPropagation() && this.handleOpenImage()}
+                             className="card-open-button">
                             <i className="material-icons">open_in_new</i>
+                        </div>
+                        <div onMouseUp={(evt) => !evt.stopPropagation() && this.handleNavImage()}
+                             className="card-nav-button prev">
+                            <i className="material-icons">keyboard_arrow_left</i>
+                        </div>
+                        <div onMouseUp={(evt) => !evt.stopPropagation() && this.handleNavImage(true)}
+                             className="card-nav-button next">
+                            <i className="material-icons">keyboard_arrow_right</i>
                         </div>
                         <div className="host-controls">
                             {data.timed ? (<div className="host-controls-menu">

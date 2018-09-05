@@ -3,7 +3,8 @@
 }
 
 .dark-theme .host-controls {
-    background: rgba(63, 63, 62, 0.78);
+    background: rgba(54, 55, 57, 0.78);
+    box-shadow: 0 0 4px 1px #050505;
 }
 
 body.dark-theme {
@@ -37,6 +38,7 @@ body.dark-theme {
     cursor: default;
     text-align: right;
     z-index: 1;
+    box-shadow: 0 0 4px 1px #969696;
 }
 
 .main-row {
@@ -120,7 +122,7 @@ body {
 }
 
 .dark-theme .settings-button:hover {
-    background: #4e4e4e;
+    background: #363739;
 }
 
 .level-selected {
@@ -286,7 +288,7 @@ body {
 }
 
 .dark-theme .status-bar-circle {
-    background: #4e4e4e;
+    background: #363739;
 }
 
 .status-bar-wrap {
@@ -305,10 +307,12 @@ body {
     height: 20px;
     overflow: hidden;
     border-radius: 0 0 25px 25px;
+    box-shadow: 0 0 4px 1px #969696;
 }
 
 .dark-theme .status-bar {
-    background: #4e4e4e;
+    background: #363739;
+    box-shadow: 0 0 4px 1px #050505;
 }
 
 .add-command-button {
@@ -350,10 +354,12 @@ body {
     background: white;
     padding: 10px;
     width: 193px;
+    box-shadow: 0 0 4px 1px #969696;
 }
 
 .dark-theme .player-list-section {
-    background: #4e4e4e;
+    background: #363739;
+    box-shadow: 0 0 4px 1px #050505;
 }
 
 .hand-cards-section {
@@ -375,10 +381,12 @@ body {
     cursor: pointer;
     position: relative;
     -webkit-user-drag: none;
+    box-shadow: 0 0 4px 1px #969696;
 }
 
 .dark-theme .card {
-    background: #4e4e4e;
+    background: #363739;
+    box-shadow: 0 0 4px 1px #050505;
 }
 
 .card.checked {
@@ -449,7 +457,7 @@ body {
 }
 
 .dark-theme .avatar {
-    color: #c5c3c3;
+    color: #fcfcfc;
 }
 
 .player .avatar {
@@ -475,7 +483,7 @@ body {
 }
 
 .dark-theme .player-avatar-section {
-    background: #4e4e4e;
+    background: #363739;
 }
 
 .player-name-section {
@@ -503,7 +511,7 @@ body {
 }
 
 .dark-theme .round-track-bar .avatar {
-    border: 2px solid #4e4e4e;
+    border: 2px solid #363739;
 }
 
 .round-track-bar .avatar.has-avatar, .card-owner .avatar.has-avatar {
@@ -511,7 +519,7 @@ body {
 }
 
 .dark-theme .round-track-bar .avatar.has-avatar, .dark-theme .card-owner .avatar.has-avatar {
-    background-color: #4e4e4e !important;
+    background-color: #363739 !important;
 }
 
 .round-track-bar .avatar.has-avatar {
@@ -519,7 +527,7 @@ body {
 }
 
 .dark-theme .round-track-bar .avatar.has-avatar {
-    border: 1px solid #4e4e4e !important;
+    border: 1px solid #363739 !important;
 }
 
 .change-avatar-icon {
@@ -536,7 +544,7 @@ body {
 }
 
 .dark-theme .change-avatar-icon {
-    background-color: #4e4e4e;
+    background-color: #363739;
     color: #e2dede;
 }
 
@@ -581,13 +589,15 @@ input#command-input {
     width: 35px;
     height: 35px;
     border: 6px solid white;
+    box-shadow: 0 0 4px 1px #969696;
 }
 
 .dark-theme .card-owner .avatar {
-    border: 6px solid #4e4e4e;
+    border: 6px solid #363739;
+    box-shadow: 0 0 4px 1px #050505;
 }
 
-.card-owner {
+.card-owner, .card-owner-shadow {
     position: absolute;
     top: -16px;
     left: -9px;
@@ -598,10 +608,12 @@ input#command-input {
     height: 30px;
     margin: 2px;
     border: 3px solid white;
+    box-shadow: 0 0 4px 1px #969696;
 }
 
 .dark-theme .card-votes .avatar {
-    border: 3px solid #4e4e4e;
+    border: 3px solid #363739;
+    box-shadow: 0 0 4px 1px #050505;
 }
 
 .card-votes {
@@ -614,16 +626,21 @@ input#command-input {
     flex-flow: row-reverse wrap;
 }
 
-.card-face.zoomed {
+.card-face-wrap.zoomed {
     position: fixed;
-    top: 30px;
-    left: 30px;
-    right: 30px;
-    bottom: 30px;
-    background-size: contain;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 1;
     width: auto;
     height: auto;
+    padding: 55px;
+    background: rgba(0, 0, 0, 0.56);
+}
+
+.card-face-wrap.zoomed .card-face {
+    background-size: contain;
 }
 
 .card.flipped {
@@ -647,10 +664,14 @@ input#command-input {
     position: absolute;
     top: 0;
     right: 0;
-    background: #4e4e4e;
+    background: white;
     padding: 0 3px;
     display: none;
     user-select: none;
+}
+
+.dark-theme .card-submit {
+    background: #363739;
 }
 
 .card.checked:hover .card-submit {
@@ -667,16 +688,17 @@ input#command-input {
     z-index: 2;
     user-select: none;
     color: #000000;
+    padding: 8px;
 }
 
 .card-open-button:hover {
-    background: #ffffff;
-    color: #e5efde;
+    background: #e5efde;
+    color: #000000;
 }
 
 .dark-theme .card-open-button {
     color: #cccaca;
-    background: #4e4e4e;
+    background: #363739;
 }
 
 .dark-theme .card-open-button:hover {
@@ -685,9 +707,77 @@ input#command-input {
 }
 
 .card-open-button i {
-    font-size: 45px;
+    font-size: 24px;
 }
 
 .card-zoomed .card-open-button {
     display: block;
+}
+
+.card-buttons {
+    position: absolute;
+    bottom: 7px;
+    background: linear-gradient(rgba(255, 252, 245, 0), rgba(255, 252, 245, 1));
+    padding: 3px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.card:hover .card-buttons {
+    opacity: 1;
+}
+
+.dark-theme .card-buttons {
+    background: linear-gradient(rgba(54, 55, 57, 0), rgba(54, 55, 57, 0.88));
+}
+
+.card-buttons > div {
+    display: inline-block;
+    padding: 6px 14px;
+}
+
+.card-nav-button {
+    display: none;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    cursor: pointer;
+    justify-content: space-around;
+    flex-direction: column;
+    user-select: none;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.42), rgba(204, 202, 202, 0));
+    background-position-x: -20px;
+    background-repeat: no-repeat;
+    transition: background 0.2s;
+    padding: 0 100px 0 20px;
+}
+
+.card-nav-button.next {
+    right: 0;
+    background-position-x: 20px;
+    background-image: linear-gradient(to left, rgba(255, 255, 255, 0.42), rgba(204, 202, 202, 0));
+    padding: 0 20px 0 100px;
+}
+
+.dark-theme .card-nav-button {
+    background-position-x: -39px;
+    background-image: linear-gradient(to right, rgb(50, 50, 50), rgba(204, 202, 202, 0));
+}
+
+.dark-theme .card-nav-button.next {
+    background-position-x: 39px;
+    background-image: linear-gradient(to left, rgb(50, 50, 50), rgba(204, 202, 202, 0));
+}
+
+.card-nav-button:hover {
+    background-position-x: 0 !important;
+}
+
+.card-zoomed .card-nav-button {
+    display: flex;
+}
+
+.card-nav-button i {
+    font-size: 40px;
 }
