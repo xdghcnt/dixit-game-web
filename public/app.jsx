@@ -127,11 +127,11 @@ class Game extends React.Component {
         const initArgs = {};
         if (!parseInt(localStorage.darkThemeDixit))
             document.body.classList.add("dark-theme");
-        if (!localStorage.userId || !localStorage.token) {
+        if (!localStorage.dixitUserId || !localStorage.dixitUserToken) {
             while (!localStorage.userName)
                 localStorage.userName = prompt("Your name");
-            localStorage.userId = makeId();
-            localStorage.token = makeId();
+            localStorage.dixitUserId = makeId();
+            localStorage.dixitUserToken = makeId();
         }
         if (!location.hash)
             history.replaceState(undefined, undefined, "#" + makeId());
@@ -141,8 +141,8 @@ class Game extends React.Component {
         }
         initArgs.avatarId = localStorage.avatarId;
         initArgs.roomId = location.hash.substr(1);
-        initArgs.userId = this.userId = localStorage.userId;
-        initArgs.token = this.userToken = localStorage.token;
+        initArgs.userId = this.userId = localStorage.dixitUserId;
+        initArgs.token = this.userToken = localStorage.dixitUserToken;
         initArgs.userName = localStorage.userName;
         this.socket = window.socket.of("memexit");
         this.player = {cards: []};
