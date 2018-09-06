@@ -502,7 +502,9 @@ function init(wsServer, path, vkToken) {
                     update();
                 },
                 "vote-card": (user, cardIndex) => {
-                    if (cardIndex != null && room.phase === 3 && room.activePlayers.has(user) && room.currentPlayer !== user && player[user].cardOnDesk !== cardIndex)
+                    if (cardIndex != null && room.phase === 3 && room.activePlayers.has(user) && !isNaN(cardIndex)
+                        && cardIndex >= 0 && cardIndex < room.deskCards.length
+                        && room.currentPlayer !== user && player[user].cardOnDesk !== cardIndex)
                         voteCard(user, cardIndex);
                     update();
                 },

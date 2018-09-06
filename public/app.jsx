@@ -96,6 +96,8 @@ class Card extends React.Component {
                     ? " correct" : "")}
                  onMouseUp={() => this.props.handleCardClick(this.props.id)}>
                 <div className="card-face-wrap"
+                     data-card-type={this.props.type}
+                     data-card-index={this.props.id}
                      data-img-url={this.props.card}
                      onMouseDown={(evt) => this.props.handleCardPress(evt.currentTarget)}>
                     <div className="card-face" style={{"background-image": `url(${this.props.card})`}}/>
@@ -216,6 +218,7 @@ class Game extends React.Component {
         this.masterSound.volume = 0.7;
         this.dealSound = new Audio("/memexit/deal.mp3");
         this.dealSound.volume = 0.3;
+        document.body.addEventListener("keydown", (evt) => this.keyDown(evt));
     }
 
     debouncedEmit() {
@@ -361,6 +364,36 @@ class Game extends React.Component {
         this.zoomed = false;
     }
 
+    keyDown(evt) {
+        if (!this.zoomed) {
+            if ((evt.key === " " || evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
+                && (this.state.phase === 1 || this.state.phase === 2))
+                document.querySelector(".hand-cards-section .card-button-zoom").click();
+            else if ((evt.key === " " || evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
+                && (this.state.phase === 3))
+                document.querySelector(".desk-cards-section .card-button-zoom").click();
+        } else {
+            if (evt.key === "Escape" || evt.key === " ")
+                this.handleCardRelease();
+            else if (evt.key === "ArrowLeft")
+                this.handleNavImage();
+            else if (evt.key === "ArrowRight")
+                this.handleNavImage(true);
+            else if (evt.key === "ArrowDown")
+                this.handleCardRelease();
+            else if (evt.key === "ArrowUp") {
+                const zoomedCard = document.getElementsByClassName("zoomed")[0];
+                if (zoomedCard.getAttribute("data-card-type") === "desk")
+                    this.handleDeskCardClick(parseInt(zoomedCard.getAttribute("data-card-index")), true);
+                else
+                    this.handleHandCardClick(parseInt(zoomedCard.getAttribute("data-card-index")), true);
+                this.handleCardRelease();
+                if (this.state.currentPlayer === this.state.userId && this.state.phase === 1)
+                    document.getElementById("command-input").focus();
+            }
+        }
+    }
+
     handleOpenImage() {
         const zoomed = document.querySelector(".zoomed");
         if (zoomed)
@@ -384,13 +417,13 @@ class Game extends React.Component {
         }
     }
 
-    handleHandCardClick(index) {
-        if (!this.zoomed)
+    handleHandCardClick(index, ignoreZoomed) {
+        if (!this.zoomed || ignoreZoomed)
             this.socket.emit("play-card", index);
     }
 
-    handleDeskCardClick(index) {
-        if (!this.zoomed)
+    handleDeskCardClick(index, ignoreZoomed) {
+        if (!this.zoomed || ignoreZoomed)
             this.socket.emit("vote-card", index);
     }
 
@@ -566,7 +599,7 @@ class Game extends React.Component {
                             <div className="desk-cards-section">
                                 {data.phase !== 2
                                     ? data.deskCards.map(((card, id) => (
-                                        <Card key={id} data={data} id={id} card={card.img} cardData={card}
+                                        <Card key={id} data={data} id={id} card={card.img} cardData={card} type="desk"
                                               checked={data.player.votedCard === id}
                                               handleZoomClick={(node) => this.handleCardZoomClick(node)}
                                               handleOpenClick={(img) => this.handleCardOpenClick(img)}
@@ -577,7 +610,7 @@ class Game extends React.Component {
                             </div>
                             <div className="hand-cards-section">
                                 {data.player.cards.map(((card, id) => (
-                                    <Card key={id} data={data} id={id} card={card}
+                                    <Card key={id} data={data} id={id} card={card} type="hand"
                                           checked={data.player.playedCard === id || ~data.player.keepCards.indexOf(id)}
                                           handleAddCommandClick={() => this.handleAddCommandClick()}
                                           handleZoomClick={(node) => this.handleCardZoomClick(node)}
