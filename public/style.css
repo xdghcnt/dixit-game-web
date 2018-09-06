@@ -678,11 +678,9 @@ input#command-input {
     display: block;
 }
 
-.card-open-button {
+.overlay-buttons {
     display: none;
     position: fixed;
-    top: 0;
-    right: 0;
     font-size: 45px;
     background: #ffffff;
     z-index: 2;
@@ -691,26 +689,42 @@ input#command-input {
     padding: 8px;
 }
 
-.card-open-button:hover {
+.card-open-button {
+    top: 0;
+    right: 0;
+}
+
+.card-select-button {
+    top: 0;
+    left: 0;
+}
+
+.fullscreen-button {
+    bottom: 0;
+    left: 0;
+    display: block;
+}
+
+.overlay-buttons:hover {
     background: #e5efde;
     color: #000000;
 }
 
-.dark-theme .card-open-button {
+.dark-theme .overlay-buttons {
     color: #cccaca;
     background: #363739;
 }
 
-.dark-theme .card-open-button:hover {
+.dark-theme .overlay-buttons:hover {
     background: #cccaca;
     color: #202020;
 }
 
-.card-open-button i {
+.overlay-buttons i {
     font-size: 24px;
 }
 
-.card-zoomed .card-open-button {
+.card-zoomed .overlay-buttons {
     display: block;
 }
 
@@ -721,6 +735,10 @@ input#command-input {
     padding: 3px;
     opacity: 0;
     transition: opacity 0.2s;
+}
+
+.is-mobile .card-buttons {
+    opacity: 1;
 }
 
 .card:hover .card-buttons {
@@ -780,4 +798,16 @@ input#command-input {
 
 .card-nav-button i {
     font-size: 40px;
+}
+
+.mobile-buttons {
+    display: none;
+}
+
+.is-mobile .mobile-buttons {
+    display: block;
+}
+
+body.is-mobile {
+    zoom: 0.7;
 }

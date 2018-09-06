@@ -421,6 +421,7 @@ function init(wsServer, path, vkToken) {
                             room.currentPlayer = getNextPlayer();
                         room.activePlayers.delete(playerId);
                         room.players.delete(playerId);
+                        room.readyPlayers.delete(playerId);
                         room.spectators.add(playerId);
                     }
                 },
