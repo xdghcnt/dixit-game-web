@@ -13,7 +13,8 @@ function init(wsServer, path, vkToken) {
         log = (msg) => {
             fs.appendFile(`${registry.config.appDir || __dirname}/memexit-logs.txt`, `${msg}\n`, () => {
             })
-        };
+        },
+        PLAYERS_MIN = 3;
 
     const vk = new VK();
     vk.setToken(vkToken);
@@ -206,7 +207,7 @@ function init(wsServer, path, vkToken) {
                     });
                 },
                 startGame = () => {
-                    if (room.players.size > 2)
+                    if (room.players.size >= PLAYERS_MIN)
                         getGroupInfo()
                             .then(() => {
                                 room.paused = false;
@@ -266,7 +267,7 @@ function init(wsServer, path, vkToken) {
                     room.command = null;
                     const prevPausedState = room.paused;
                     room.paused = true;
-                    if (room.players.size > 2) {
+                    if (room.players.size >= PLAYERS_MIN) {
                         room.phase = 1;
                         [...room.players].forEach(playerId => room.activePlayers.add(playerId));
                         [...room.players].forEach(playerId => {
@@ -296,7 +297,7 @@ function init(wsServer, path, vkToken) {
                 addCommand = (user, command) => {
                     const cardId = player[room.currentPlayer].playedCard;
                     if (cardId !== null) {
-                        if (room.activePlayers.size > 2) {
+                        if (room.activePlayers.size >= PLAYERS_MIN) {
                             room.inactivePlayers.delete(user);
                             room.deskCards = [];
                             room.teamsLocked = true;
@@ -346,7 +347,7 @@ function init(wsServer, path, vkToken) {
                     updatePlayerState();
                 },
                 revealCards = () => {
-                    if (room.activePlayers.size > 2) {
+                    if (room.activePlayers.size >= PLAYERS_MIN) {
                         room.readyPlayers.clear();
                         room.phase = 3;
                         room.deskCards = [];
@@ -433,7 +434,7 @@ function init(wsServer, path, vkToken) {
                         room.readyPlayers.delete(playerId);
                         room.spectators.add(playerId);
                     }
-                    if (room.phase !== 0 && room.activePlayers.size < 3)
+                    if (room.phase !== 0 && room.activePlayers.size < PLAYERS_MIN)
                         stopGame();
                 },
                 printState = () => `\m player-state: ${JSON.stringify(player, null, 4)} \n game-state: ${JSON.stringify(room, null, 4)}`,
@@ -530,7 +531,7 @@ function init(wsServer, path, vkToken) {
                         room.paused = !room.paused;
                         if (!room.paused) {
                             room.teamsLocked = true;
-                            if (room.phase !== 0 && room.activePlayers.size < 3)
+                            if (room.phase !== 0 && room.activePlayers.size < PLAYERS_MIN)
                                 stopGame();
                             else if (room.timeUpdated) {
                                 room.timeUpdated = false;
