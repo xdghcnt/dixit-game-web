@@ -87,37 +87,39 @@ class Avatar extends React.Component {
 
 class Card extends React.Component {
     render() {
-        const data = this.props.data;
+        const
+            data = this.props.data,
+            props = this.props;
         return (
             <div className={
                 "card"
-                + (this.props.checked ? " checked" : "")
-                + (this.props.cardData && this.props.cardData.correct
+                + (props.checked ? " checked" : "")
+                + ` card-type-${props.type} card-id-${props.id}`
+                + (props.cardData && props.cardData.correct
                     ? " correct" : "")}
-                 onMouseUp={() => this.props.handleCardClick(this.props.id)}>
+                 onMouseUp={() => props.handleCardClick(props.type, props.id)}
+                 data-img-url={props.card}>
                 <div className="card-face-wrap"
-                     data-card-type={this.props.type}
-                     data-card-index={this.props.id}
-                     data-img-url={this.props.card}
-                     onMouseDown={(evt) => this.props.handleCardPress(evt.currentTarget)}
-                     onTouchStart={(evt) => !evt.stopPropagation() && this.props.handleCardPress(evt.currentTarget)}>
-                    <div className="card-face" style={{"background-image": `url(${this.props.card})`}}/>
+                     onMouseDown={() => props.handleCardPress(props.type, props.id)}
+                     onTouchStart={(evt) => !evt.stopPropagation() && props.handleCardPress(props.type, props.id)}>
+                    <div className="card-face" style={{"background-image": `url(${props.card})`}}/>
                 </div>
                 <div className="card-buttons" onMouseDown={(evt) => evt.stopPropagation()}
                      onMouseUp={(evt) => evt.stopPropagation()}>
-                    <div className="card-button-zoom" onClick={(evt) => this.props.handleZoomClick(evt.currentTarget)}>
+                    <div className="card-button-zoom"
+                         onClick={() => props.handleZoomClick(props.type, props.id)}>
                         <i
                             className="material-icons">search</i></div>
-                    <div className="card-button-open" onClick={() => this.props.handleOpenClick(this.props.card)}><i
+                    <div className="card-button-open" onClick={() => props.handleOpenClick(props.card)}><i
                         className="material-icons">open_in_new</i></div>
                 </div>
                 {data.phase === 1 && data.userId === data.currentPlayer ? (
                     <div className="card-submit"
-                         onMouseDown={(evt) => !evt.stopPropagation() && this.props.handleAddCommandClick()}>➜</div>) : ""}
-                {this.props.cardData && this.props.cardData.owner ? (<div className="card-info">
-                    <div className="card-owner"><Avatar data={data} player={this.props.cardData.owner}/></div>
+                         onMouseDown={(evt) => !evt.stopPropagation() && props.handleAddCommandClick()}>➜</div>) : ""}
+                {props.cardData && props.cardData.owner ? (<div className="card-info">
+                    <div className="card-owner"><Avatar data={data} player={props.cardData.owner}/></div>
                     <div className="card-votes">{
-                        this.props.cardData.votes.map(vote =>
+                        props.cardData.votes.map(vote =>
                             <Avatar data={data} player={vote}/>)}</div>
                 </div>) : ""}
             </div>
@@ -366,26 +368,30 @@ class Game extends React.Component {
         this.socket.emit("toggle-timed");
     }
 
-    handleCardPress(wordNode) {
+    handleCardPress(type, cardId) {
         this.wasReleased = false;
         clearTimeout(this.holdTimeout);
         this.holdTimeout = setTimeout(() => {
             if (!this.wasReleased)
-                this.zoomCard(wordNode);
+                this.zoomCard(type, cardId);
         }, this.isMobile ? 650 : 150);
     }
 
-    zoomCard(wordNode) {
-        wordNode.classList.add("zoomed");
-        document.body.classList.add("card-zoomed");
-        this.zoomed = true;
+    zoomCard(type, cardId) {
+        const cardNode = document.querySelector(`.card-type-${type}.card-id-${cardId}`);
+        if (cardNode) {
+            cardNode.classList.add("zoomed");
+            document.body.classList.add("card-zoomed");
+            this.zoomed = {node: cardNode, type: type, id: cardId, img: cardNode.getAttribute("data-img-url")};
+        }
     }
 
-    handleCardRelease() {
+    unZoomCard() {
         this.wasReleased = true;
-        const zoomed = document.querySelector(".zoomed");
-        zoomed && zoomed.classList.remove("zoomed");
-        document.body.classList.remove("card-zoomed");
+        if (this.zoomed) {
+            this.zoomed.node.classList.remove("zoomed");
+            document.body.classList.remove("card-zoomed");
+        }
         this.zoomed = false;
     }
 
@@ -393,22 +399,22 @@ class Game extends React.Component {
         if (!this.zoomed) {
             if ((evt.key === " " || evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
                 && (this.state.phase === 1 || this.state.phase === 2))
-                document.querySelector(".hand-cards-section .card-button-zoom").click();
+                this.zoomCard("hand", 0);
             else if ((evt.key === " " || evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
                 && (this.state.phase === 3))
-                document.querySelector(".desk-cards-section .card-button-zoom").click();
+                this.zoomCard("desk", 0);
         } else {
             if (evt.key === "Escape" || evt.key === " ")
-                this.handleCardRelease();
+                this.unZoomCard();
             else if (evt.key === "ArrowLeft")
                 this.handleNavImage();
             else if (evt.key === "ArrowRight")
                 this.handleNavImage(true);
             else if (evt.key === "ArrowDown")
-                this.handleCardRelease();
+                this.unZoomCard();
             else if (evt.key === "ArrowUp") {
                 this.selectZoomedCard();
-                this.handleCardRelease();
+                this.unZoomCard();
                 if (this.state.currentPlayer === this.state.userId && this.state.phase === 1)
                     document.getElementById("command-input").focus();
             }
@@ -416,48 +422,36 @@ class Game extends React.Component {
     }
 
     selectZoomedCard() {
-        const zoomedCard = document.getElementsByClassName("zoomed")[0];
-        if (zoomedCard.getAttribute("data-card-type") === "desk")
-            this.handleDeskCardClick(parseInt(zoomedCard.getAttribute("data-card-index")), true);
-        else
-            this.handleHandCardClick(parseInt(zoomedCard.getAttribute("data-card-index")), true);
+        const zoomed = this.zoomed;
+        if (zoomed)
+            this.chooseCard(zoomed.type, zoomed.id, true);
     }
 
     handleOpenImage() {
-        const zoomed = document.querySelector(".zoomed");
+        const zoomed = this.zoomed;
         if (zoomed)
-            window.open(zoomed.getAttribute("data-img-url"), "_blank");
+            window.open(this.zoomed.img, "_blank");
     }
 
     handleNavImage(next) {
-        const zoomed = document.querySelector(".zoomed");
+        const zoomed = this.zoomed;
         if (zoomed) {
             let
-                cards = zoomed.parentNode.parentNode.childNodes,
-                index = Array.prototype.indexOf.call(cards, zoomed.parentNode),
-                length = cards.length;
+                index = zoomed.id,
+                length = (zoomed.type === "desk" ? this.state.deskCards : this.state.player.cards).length;
             index += next ? 1 : -1;
             if (index < 0)
                 index = length - 1;
             else if (index === length)
                 index = 0;
-            zoomed.classList.remove("zoomed");
-            cards[index].getElementsByClassName("card-face-wrap")[0].classList.add("zoomed");
+            this.unZoomCard();
+            this.zoomCard(zoomed.type, index);
         }
     }
 
-    handleHandCardClick(index, ignoreZoomed) {
+    chooseCard(type, cardId, ignoreZoomed) {
         if (!this.zoomed || ignoreZoomed)
-            this.socket.emit("play-card", index);
-    }
-
-    handleDeskCardClick(index, ignoreZoomed) {
-        if (!this.zoomed || ignoreZoomed)
-            this.socket.emit("vote-card", index);
-    }
-
-    handleCardZoomClick(node) {
-        this.zoomCard(node.parentNode.parentNode.getElementsByClassName("card-face-wrap")[0]);
+            this.socket.emit(type === "desk" ? "vote-card" : "play-card", cardId);
     }
 
     handleCardOpenClick(img) {
@@ -549,7 +543,7 @@ class Game extends React.Component {
                 <div className={
                     "game"
                     + (this.state.timed ? " timed" : "")}
-                     onMouseUp={() => this.handleCardRelease()}>
+                     onMouseUp={() => this.unZoomCard()}>
                     <div className={
                         "game-board"
                         + (this.state.inited ? " active" : "")
@@ -630,10 +624,10 @@ class Game extends React.Component {
                                     ? data.deskCards.map(((card, id) => (
                                         <Card key={id} data={data} id={id} card={card.img} cardData={card} type="desk"
                                               checked={data.player.votedCard === id}
-                                              handleZoomClick={(node) => this.handleCardZoomClick(node)}
+                                              handleZoomClick={(type, id) => this.zoomCard(type, id)}
                                               handleOpenClick={(img) => this.handleCardOpenClick(img)}
-                                              handleCardClick={(id) => this.handleDeskCardClick(id)}
-                                              handleCardPress={(node) => this.handleCardPress(node)}/>
+                                              handleCardClick={(type, id) => this.chooseCard(type, id)}
+                                              handleCardPress={(type, id) => this.handleCardPress(type, id)}/>
                                     )))
                                     : data.readyPlayers.map(() => (<div className="card flipped"/>))}
                             </div>
@@ -642,10 +636,10 @@ class Game extends React.Component {
                                     <Card key={id} data={data} id={id} card={card} type="hand"
                                           checked={data.player.playedCard === id || ~data.player.keepCards.indexOf(id)}
                                           handleAddCommandClick={() => this.handleAddCommandClick()}
-                                          handleZoomClick={(node) => this.handleCardZoomClick(node)}
+                                          handleZoomClick={(type, id) => this.zoomCard(type, id)}
                                           handleOpenClick={(img) => this.handleCardOpenClick(img)}
-                                          handleCardClick={(id) => this.handleHandCardClick(id)}
-                                          handleCardPress={(node) => this.handleCardPress(node)}/>
+                                          handleCardClick={(type, id) => this.chooseCard(type, id)}
+                                          handleCardPress={(type, id) => this.handleCardPress(type, id)}/>
                                 )))}
                             </div>
                         </div>

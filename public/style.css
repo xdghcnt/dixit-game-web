@@ -626,7 +626,7 @@ input#command-input {
     flex-flow: row-reverse wrap;
 }
 
-.card-face-wrap.zoomed {
+.card.zoomed .card-face-wrap {
     position: fixed;
     top: 0;
     left: 0;
@@ -639,7 +639,7 @@ input#command-input {
     background: rgba(0, 0, 0, 0.56);
 }
 
-.card-face-wrap.zoomed .card-face {
+.card.zoomed .card-face-wrap .card-face {
     background-size: contain;
 }
 
