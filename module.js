@@ -250,6 +250,15 @@ function init(wsServer, path, vkToken) {
                     else
                         endGame();
                 },
+                stopGame = () => {
+                    room.readyPlayers.clear();
+                    room.activePlayers.clear();
+                    room.command = null;
+                    room.paused = true;
+                    room.teamsLocked = false;
+                    room.phase = 0;
+                    update();
+                },
                 startRound = () => {
                     log(`round started ${printState()}`);
                     room.readyPlayers.clear();
@@ -274,7 +283,7 @@ function init(wsServer, path, vkToken) {
                             update();
                         }).catch((error) => {
                             registry.log(`memexit - VK get cards error - ${error.message}`);
-                            endRound();
+                            stopGame();
                             send(room.hostId, "message", error.message || error);
                             update();
                         });
@@ -299,7 +308,7 @@ function init(wsServer, path, vkToken) {
                             room.phase = 2;
                             startTimer();
                             updatePlayerState();
-                        } else endRound();
+                        } else stopGame();
                     }
                 },
                 playCard = (playerId, cardIndex) => {
@@ -353,7 +362,7 @@ function init(wsServer, path, vkToken) {
                             player[playerId].cardOnDesk = index;
                         });
                         startTimer();
-                    } else endRound();
+                    } else stopGame();
                     updatePlayerState();
                     update();
                 },
@@ -424,6 +433,8 @@ function init(wsServer, path, vkToken) {
                         room.readyPlayers.delete(playerId);
                         room.spectators.add(playerId);
                     }
+                    if (room.phase !== 0 && room.activePlayers.size < 3)
+                        stopGame();
                 },
                 printState = () => `\m player-state: ${JSON.stringify(player, null, 4)} \n game-state: ${JSON.stringify(room, null, 4)}`,
                 userJoin = (data) => {
@@ -520,7 +531,7 @@ function init(wsServer, path, vkToken) {
                         if (!room.paused) {
                             room.teamsLocked = true;
                             if (room.phase !== 0 && room.activePlayers.size < 3)
-                                endRound();
+                                stopGame();
                             else if (room.timeUpdated) {
                                 room.timeUpdated = false;
                                 startTimer();
