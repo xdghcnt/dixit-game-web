@@ -45,8 +45,19 @@ function init(wsServer, path, vkToken) {
     app.use("/memexit", express.static(`${__dirname}/public`));
     if (registry.config.appDir)
         app.use("/memexit", express.static(`${registry.config.appDir}/public`));
-    app.get(path, function (req, res) {
+    app.get(path, (req, res) => {
         res.sendFile(`${__dirname}/public/app.html`);
+    });
+    app.get("/memexit/stats", function (req, res) {
+        fs.readFile(`${registry.config.appDir || __dirname}/memexit-stats.txt`, {encoding: "utf-8"}, (err, data) => {
+            if (err) res.send(err.message);
+            res.send(`<style>img {max-width: 49%;} .section { border-bottom: 1px solid #aeaeae; padding: 10px 0; } .command {margin-bottom: 10px;}</style>`
+                + `${data.split("\n").map((line) => {
+                    const rowData = JSON.parse(line);
+                    return `<div class="section"><div class="command">${rowData.command}</div><div class="img"><img src="${rowData.img}"/>`
+                        + `${rowData.winImg ? `<img class="win" src="${rowData.winImg}"/>` : ``}</div></div>`;
+                }).join("")}`);
+        });
     });
 
     class GameState extends EventEmitter {
@@ -408,7 +419,7 @@ function init(wsServer, path, vkToken) {
                     const mostVotedCard = [...room.deskCards].sort((a, b) => a.votes - b.votes).reverse()[0];
                     if (mostVotedCard && stats.img !== mostVotedCard.img)
                         stats.winImg = mostVotedCard.img;
-                    fs.writeFile(`${registry.config.appDir || __dirname}/memexit-stats.txt`, JSON.stringify(stats), () => {
+                    fs.appendFile(`${registry.config.appDir || __dirname}/memexit-stats.txt`, JSON.stringify(stats), () => {
                     });
                     const scores = [...room.activePlayers].map(playerId => room.playerScores[playerId] || 0).sort((a, b) => a - b).reverse();
                     if (scores[0] > scores[1]) {
