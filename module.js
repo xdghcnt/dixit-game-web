@@ -105,10 +105,7 @@ function init(wsServer, path, vkToken) {
             this.lastInteraction = new Date();
             let interval;
             const
-                send = (target, event, data) => {
-                    this.lastInteraction = new Date();
-                    userRegistry.send(target, event, data);
-                },
+                send = (target, event, data) => userRegistry.send(target, event, data),
                 update = () => send(room.onlinePlayers, "state", room),
                 updatePlayerState = () => {
                     [...room.activePlayers].forEach(playerId => {
@@ -269,6 +266,7 @@ function init(wsServer, path, vkToken) {
                     room.paused = true;
                     room.teamsLocked = false;
                     room.phase = 0;
+                    clearInterval(interval);
                     update();
                 },
                 startRound = () => {
@@ -481,9 +479,12 @@ function init(wsServer, path, vkToken) {
                     if (room.spectators.has(user))
                         delete room.playerNames[user];
                     room.spectators.delete(user);
+                    if (room.onlinePlayers.size === 0)
+                        stopGame();
                     update();
                 },
                 userEvent = (user, event, data) => {
+                    this.lastInteraction = new Date();
                     try {
                         if (this.eventHandlers[event])
                             this.eventHandlers[event](user, data[0], data[1], data[2]);
