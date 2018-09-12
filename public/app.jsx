@@ -373,15 +373,16 @@ class Game extends React.Component {
         clearTimeout(this.holdTimeout);
         this.holdTimeout = setTimeout(() => {
             if (!this.wasReleased)
-                this.zoomCard(type, cardId);
+                this.zoomCard(type, cardId, true);
         }, this.isMobile ? 650 : 150);
     }
 
-    zoomCard(type, cardId) {
+    zoomCard(type, cardId, holdMode) {
         const cardNode = document.querySelector(`.card-type-${type}.card-id-${cardId}`);
         if (cardNode) {
             cardNode.classList.add("zoomed");
-            document.body.classList.add("card-zoomed");
+            if (!holdMode)
+                document.body.classList.add("card-zoomed");
             this.zoomed = {node: cardNode, type: type, id: cardId, img: cardNode.getAttribute("data-img-url")};
         }
     }
@@ -397,14 +398,14 @@ class Game extends React.Component {
 
     keyDown(evt) {
         if (!this.zoomed) {
-            if ((evt.key === " " || evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
+            if ((evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
                 && (this.state.phase === 1 || this.state.phase === 2))
                 this.zoomCard("hand", 0);
-            else if ((evt.key === " " || evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
+            else if ((evt.key === "ArrowUp") && this.state.player && this.state.player.cards.length
                 && (this.state.phase === 3))
                 this.zoomCard("desk", 0);
         } else {
-            if (evt.key === "Escape" || evt.key === " ")
+            if (evt.key === "Escape")
                 this.unZoomCard();
             else if (evt.key === "ArrowLeft")
                 this.handleNavImage();
@@ -556,7 +557,8 @@ class Game extends React.Component {
                                     {data.currentPlayer === data.userId && data.phase === 1 ? (
                                         <div className="add-command">
                                             <input className="add-command-input" id="command-input"
-                                                   onKeyDown={(evt) => evt.key === "Enter" && this.handleAddCommandClick()}/>
+                                                   onKeyDown={(evt) => !evt.stopPropagation()
+                                                       && evt.key === "Enter" && this.handleAddCommandClick()}/>
                                             <div className="add-command-button"
                                                  onClick={() => this.handleAddCommandClick()}>➜
                                             </div>
