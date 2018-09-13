@@ -329,7 +329,7 @@ class Game extends React.Component {
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     localStorage.avatarId = xhr.responseText;
                     this.socket.emit("update-avatar", localStorage.avatarId);
-                }
+                } else if (xhr.readyState === 4 && xhr.status !== 200) alert("File upload error");
             };
             fd.append("avatar", file);
             fd.append("userId", this.userId);

@@ -9,7 +9,6 @@
   ],
   "dependencies": {
     "ws-server-engine": "git://github.com/xdghcnt/ws-server-engine.git",
-    "express-fileupload": "0.4.0",
     "vk-io": "4.0.0-rc.1",
     "randomcolor": "0.5.3"
   }

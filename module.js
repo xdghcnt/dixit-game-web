@@ -5,7 +5,6 @@ function init(wsServer, path, vkToken) {
         express = require("express"),
         {VK} = require("vk-io"),
         randomColor = require('randomcolor'),
-        fileUpload = require("express-fileupload"),
         exec = require("child_process").exec,
         app = wsServer.app,
         registry = wsServer.users,
@@ -18,11 +17,6 @@ function init(wsServer, path, vkToken) {
 
     const vk = new VK();
     vk.setToken(vkToken);
-
-    app.use(fileUpload({
-        limits: {fileSize: 5 * 1024 * 1024},
-        abortOnLimit: true
-    }));
 
     app.post("/memexit/upload-avatar", function (req, res) {
         registry.log(`memexit - ${req.body.userId} - upload-avatar`);
@@ -40,7 +34,7 @@ function init(wsServer, path, vkToken) {
                 })
 
             });
-        }
+        } else res.status(500).send("Wrong data");
     });
     app.use("/memexit", express.static(`${__dirname}/public`));
     if (registry.config.appDir)
@@ -590,11 +584,8 @@ function init(wsServer, path, vkToken) {
                     update();
                 },
                 "remove-player": (user, playerId) => {
-                    if (playerId && user === room.hostId) {
+                    if (playerId && user === room.hostId)
                         removePlayer(playerId);
-                        if (room.onlinePlayers.has(playerId))
-                            room.spectators.add(playerId);
-                    }
                     update();
                 },
                 "give-host": (user, playerId) => {
