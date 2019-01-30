@@ -427,16 +427,18 @@ function init(wsServer, path, vkToken) {
                         room.playerScores[playerId] = 0;
                 },
                 removePlayer = (playerId) => {
-                    if (room.spectators.has(playerId))
-                        registry.disconnectUser(playerId, "Kicked");
-                    else {
-                        if (room.currentPlayer === playerId)
-                            room.currentPlayer = getNextPlayer();
-                        room.activePlayers.delete(playerId);
-                        room.players.delete(playerId);
-                        room.readyPlayers.delete(playerId);
-                        room.spectators.add(playerId);
+                    if (room.currentPlayer === playerId)
+                        room.currentPlayer = getNextPlayer();
+                    room.activePlayers.delete(playerId);
+                    room.players.delete(playerId);
+                    room.readyPlayers.delete(playerId);
+                    if (room.spectators.has(playerId) || !room.onlinePlayers.has(playerId)) {
+                        room.spectators.delete(playerId);
+                        delete room.playerNames[playerId];
+                        registry.disconnect(playerId, "You was removed");
                     }
+                    else
+                        room.spectators.add(playerId);
                     if (room.phase !== 0 && room.activePlayers.size < PLAYERS_MIN)
                         stopGame();
                 },
@@ -645,7 +647,7 @@ function init(wsServer, path, vkToken) {
             this.room.paused = true;
             this.room.activePlayers = new JSONSet(this.room.activePlayers);
             this.room.inactivePlayers = new JSONSet(this.room.inactivePlayers);
-            this.room.onlinePlayers = new JSONSet(this.room.onlinePlayers);
+            this.room.onlinePlayers = new JSONSet();
             this.room.players = new JSONSet(this.room.players);
             this.room.readyPlayers = new JSONSet(this.room.readyPlayers);
             this.room.spectators = new JSONSet(this.room.spectators);
