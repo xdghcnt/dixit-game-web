@@ -174,7 +174,7 @@ class Game extends React.Component {
             this.setState(Object.assign(this.state, {player: this.player}));
         });
         this.socket.on("message", text => {
-            alert(text);
+            popup.alert({content: text});
         });
         window.socket.on("disconnect", (event) => {
             this.setState({
@@ -278,14 +278,12 @@ class Game extends React.Component {
 
     handleRemovePlayer(id, evt) {
         evt.stopPropagation();
-        if (confirm(`Removing ${this.state.playerNames[id]}?`))
-            this.socket.emit("remove-player", id);
+        popup.confirm({content: `Removing ${this.state.playerNames[id]}?`}, (evt) => evt.proceed && this.socket.emit("remove-player", id));
     }
 
     handleGiveHost(id, evt) {
         evt.stopPropagation();
-        if (confirm(`Give host ${this.state.playerNames[id]}?`))
-            this.socket.emit("give-host", id);
+        popup.confirm({content: `Give host ${this.state.playerNames[id]}?`}, (evt) => evt.proceed && this.socket.emit("give-host", id));
     }
 
     handleChangeTime(value, type) {
@@ -301,9 +299,12 @@ class Game extends React.Component {
     }
 
     handleClickChangeName() {
-        const name = prompt("New name");
-        this.socket.emit("change-name", name);
-        localStorage.userName = name;
+        popup.prompt({content: "New name"}, (evt) => {
+            if (evt.proceed && evt.input_value.trim()) {
+                this.socket.emit("change-name", evt.input_value);
+                localStorage.userName = evt.input_value;
+            }
+        });
     }
 
     handleClickSetAvatar() {
@@ -329,7 +330,7 @@ class Game extends React.Component {
                 if (xhr.readyState === 4 && xhr.status === 200) {
                     localStorage.avatarId = xhr.responseText;
                     this.socket.emit("update-avatar", localStorage.avatarId);
-                } else if (xhr.readyState === 4 && xhr.status !== 200) alert("File upload error");
+                } else if (xhr.readyState === 4 && xhr.status !== 200) popup.alert({content: "File upload error"});
             };
             fd.append("avatar", file);
             fd.append("userId", this.userId);
@@ -337,7 +338,7 @@ class Game extends React.Component {
             xhr.send(fd);
         }
         else
-            alert("File shouldn't be larger than 5 MB");
+            popup.alert({content: "File shouldn't be larger than 5 MB"});
     }
 
     handleToggleTheme() {
@@ -360,8 +361,10 @@ class Game extends React.Component {
     }
 
     handleClickRestart() {
-        if (confirm("Restart? Are you sure?"))
-            this.socket.emit("restart");
+        if (!this.gameIsOver)
+            popup.confirm({content: "Restart? Are you sure?"}, (evt) => evt.proceed && this.socket.emit("restart"));
+        else
+            this.socket.emit("restart")
     }
 
     handleToggleTimed() {
