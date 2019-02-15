@@ -648,9 +648,9 @@ function init(wsServer, path, vkToken) {
             this.room.activePlayers = new JSONSet(this.room.activePlayers);
             this.room.inactivePlayers = new JSONSet(this.room.inactivePlayers);
             this.room.onlinePlayers = new JSONSet();
+            this.room.spectators = new JSONSet();
             this.room.players = new JSONSet(this.room.players);
             this.room.readyPlayers = new JSONSet(this.room.readyPlayers);
-            this.room.spectators = new JSONSet(this.room.spectators);
             this.room.onlinePlayers.clear();
             this.getGroupInfo();
         }
