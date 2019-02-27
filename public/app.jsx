@@ -560,6 +560,7 @@ class Game extends React.Component {
                                     {data.currentPlayer === data.userId && data.phase === 1 ? (
                                         <div className="add-command">
                                             <input className="add-command-input" id="command-input"
+                                                   autoComplete="off"
                                                    onKeyDown={(evt) => !evt.stopPropagation()
                                                        && evt.key === "Enter" && this.handleAddCommandClick()}/>
                                             <div className="add-command-button"

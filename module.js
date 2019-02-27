@@ -13,7 +13,8 @@ function init(wsServer, path, vkToken) {
             fs.appendFile(`${registry.config.appDir || __dirname}/memexit-logs.txt`, `${msg}\n`, () => {
             })
         },
-        PLAYERS_MIN = 3;
+        testMode = process.argv[2] === "debug",
+        PLAYERS_MIN = testMode ? 1 : 3;
 
     const vk = new VK();
     vk.setToken(vkToken);
