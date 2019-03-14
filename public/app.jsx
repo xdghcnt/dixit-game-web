@@ -16,12 +16,11 @@ class Player extends React.Component {
             data = this.props.data,
             id = this.props.id;
         return (
-            <div className={
-                "player"
-                + (~data.readyPlayers.indexOf(id) ? " ready" : "")
-                + (!~data.onlinePlayers.indexOf(id) ? " offline" : "")
-                + (id === data.userId ? " self" : "")
-            }>
+            <div className={cs("player", {
+                ready: ~data.readyPlayers.indexOf(id),
+                offline: !~data.onlinePlayers.indexOf(id),
+                self: id === data.userId
+            })}>
                 <div className="player-avatar-section"
                      onClick={() => (id === data.userId) && this.props.handleAvatarClick()}>
                     <Avatar data={data} player={id}/>
@@ -64,9 +63,7 @@ class Avatar extends React.Component {
             hasAvatar = !!this.props.data.playerAvatars[this.props.player],
             avatarURI = `/memexit/avatars/${this.props.player}/${this.props.data.playerAvatars[this.props.player]}.png`;
         return (
-            <div className={
-                "avatar"
-                + (hasAvatar ? " has-avatar" : "")}
+            <div className={cs("avatar", {"has-avatar": hasAvatar})}
                  style={{
                      "background-image": hasAvatar
                          ? `url(${avatarURI})`
@@ -92,11 +89,10 @@ class Card extends React.Component {
             props = this.props;
         return (
             <div className={
-                "card"
-                + (props.checked ? " checked" : "")
-                + ` card-type-${props.type} card-id-${props.id}`
-                + (props.cardData && props.cardData.correct
-                    ? " correct" : "")}
+                cs("card", `card-type-${props.type}`, `card-id-${props.id}`, {
+                    checked: props.checked,
+                    correct: props.cardData && props.cardData.correct
+                })}
                  onMouseUp={() => props.handleCardClick(props.type, props.id)}
                  data-img-url={props.card}>
                 <div className="card-face-wrap"
@@ -245,8 +241,7 @@ class Game extends React.Component {
 
         if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
             requestFullScreen.call(docEl);
-        }
-        else {
+        } else {
             cancelFullScreen.call(doc);
         }
     }
@@ -336,8 +331,7 @@ class Game extends React.Component {
             fd.append("userId", this.userId);
             fd.append("userToken", this.userToken);
             xhr.send(fd);
-        }
-        else
+        } else
             popup.alert({content: "File shouldn't be larger than 5 MB"});
     }
 
@@ -544,16 +538,14 @@ class Game extends React.Component {
                     status = "Now they will try to guess your card";
             }
             return (
-                <div className={
-                    "game"
-                    + (this.state.timed ? " timed" : "")}
+                <div className={cs("game", {timed: this.state.timed})}
                      onMouseUp={() => this.unZoomCard()}>
                     <div className={
-                        "game-board"
-                        + (this.state.inited ? " active" : "")
-                        + (isMaster ? " isMaster" : "")
-                        + (data.teamsLocked ? " teamsLocked" : "")
-                    }>
+                        cs("game-board", {
+                            active: this.state.inited,
+                            isMaster,
+                            teamsLocked: data.teamsLocked
+                        })}>
                         <div className="status-bar-wrap">
                             <div className="status-bar">
                                 <div className="title-section">
@@ -610,10 +602,7 @@ class Game extends React.Component {
                                     {!~data.players.indexOf(data.userId) ? (
                                         <div className="join-button">Play</div>) : ""}
                                 </div>
-                                <div className={
-                                    "spectators"
-                                    + (data.spectators.length ? "" : " empty")
-                                }
+                                <div className={cs("spectators", {empty: !data.spectators.length})}
                                      onClick={(evt) => this.handleJoinSpectatorsClick(evt)}>
                                     {data.spectators.map((id => (
                                         <Player key={id} data={data} id={id}
@@ -766,8 +755,7 @@ class Game extends React.Component {
                     </div>
                 </div>
             );
-        }
-        else return (<div/>);
+        } else return (<div/>);
     }
 }
 
