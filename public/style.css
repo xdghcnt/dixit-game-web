@@ -61,7 +61,7 @@ body.dark-theme {
     display: none;
 }
 
-.player:hover .player-host-controls, .command:hover .player-host-controls {
+.player:hover .player-host-controls, .player:focus .player-host-controls {
     display: inline-block;
 }
 
@@ -155,7 +155,7 @@ body {
     display: none;
 }
 
-.host-controls:hover .side-buttons {
+.host-controls:hover .side-buttons, .host-controls:focus .side-buttons {
     display: inline-block;
 }
 
@@ -185,16 +185,12 @@ body {
     display: inline-block;
 }
 
-.score:hover .change-score {
-    display: inline-block;
-}
-
 .host-controls-menu {
     display: none;
     margin-bottom: 9px;
 }
 
-.host-controls:hover .host-controls-menu {
+.host-controls:hover .host-controls-menu, .host-controls:focus .host-controls-menu {
     display: block;
 }
 
@@ -548,7 +544,7 @@ body {
     color: #e2dede;
 }
 
-.player-avatar-section:hover .change-avatar-icon {
+.player-avatar-section:hover .change-avatar-icon, .player-avatar-section:focus .change-avatar-icon {
     display: block;
 }
 
@@ -674,7 +670,7 @@ input#command-input {
     background: #363739;
 }
 
-.card.checked:hover .card-submit {
+.card.checked:hover .card-submit, .card.checked:focus .card-submit {
     display: block;
 }
 

@@ -20,8 +20,9 @@ class Player extends React.Component {
                 ready: ~data.readyPlayers.indexOf(id),
                 offline: !~data.onlinePlayers.indexOf(id),
                 self: id === data.userId
-            })}>
+            })} onTouchStart={(e) => e.target.focus()}>
                 <div className="player-avatar-section"
+                     onTouchStart={(e) => e.target.focus()}
                      onClick={() => (id === data.userId) && this.props.handleAvatarClick()}>
                     <Avatar data={data} player={id}/>
                     {id === data.userId ? (<i className="change-avatar-icon material-icons" title="Change avatar">
@@ -660,7 +661,7 @@ class Game extends React.Component {
                              className="card-nav-button next">
                             <i className="material-icons">keyboard_arrow_right</i>
                         </div>
-                        <div className="host-controls">
+                        <div className="host-controls" onTouchStart={(e) => e.target.focus()}>
                             {data.timed ? (<div className="host-controls-menu">
                                 <div className="little-controls">
                                     <div className="game-settings">
