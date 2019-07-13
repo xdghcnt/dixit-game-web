@@ -9,7 +9,7 @@
   ],
   "dependencies": {
     "ws-server-engine": "git://github.com/xdghcnt/ws-server-engine.git",
-    "vk-io": "4.0.0-rc.1",
+    "vk-io": "4.0.0-rc.19",
     "randomcolor": "0.5.3"
   }
 }
