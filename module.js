@@ -16,8 +16,7 @@ function init(wsServer, path, vkToken) {
         testMode = process.argv[2] === "debug",
         PLAYERS_MIN = testMode ? 1 : 3;
 
-    const vk = new VK();
-    vk.setToken(vkToken);
+    const vk = new VK({token: vkToken});
 
     app.post("/memexit/upload-avatar", function (req, res) {
         registry.log(`memexit - ${req.body.userId} - upload-avatar`);
@@ -90,7 +89,7 @@ function init(wsServer, path, vkToken) {
                     authRequired: false,
                     playerAvatars: {},
                     needNewCards: true,
-                    groupURI: "https://vk.com/ayy_memes"
+                    groupURI: "https://vk.com/mysticsofthelowersort"
                 },
                 state = {},
                 player = {};
