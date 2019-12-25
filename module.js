@@ -39,9 +39,7 @@ function init(wsServer, path, vkToken) {
     app.use("/memexit", express.static(`${__dirname}/public`));
     if (registry.config.appDir)
         app.use("/memexit", express.static(`${registry.config.appDir}/public`));
-    app.get(path, (req, res) => {
-        res.sendFile(`${__dirname}/public/app.html`);
-    });
+    registry.handleAppPage(path, `${__dirname}/public/app.html`);
     app.get("/memexit/stats", function (req, res) {
         fs.readFile(`${registry.config.appDir || __dirname}/memexit-stats.txt`, {encoding: "utf-8"}, (err, data) => {
             if (err) res.send(err.message);

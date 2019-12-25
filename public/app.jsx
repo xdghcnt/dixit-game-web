@@ -146,6 +146,7 @@ class Game extends React.Component {
         initArgs.userId = this.userId = localStorage.dixitUserId;
         initArgs.token = this.userToken = localStorage.dixitUserToken;
         initArgs.userName = localStorage.userName;
+        initArgs.wssToken = window.wssToken;
         this.socket = window.socket.of("memexit");
         this.player = {cards: []};
         this.socket.on("state", state => {
