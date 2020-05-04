@@ -722,7 +722,7 @@ class Game extends React.Component {
                             </div>) : ""}
                             <div className="side-buttons">
                                 <i onClick={() => this.socket.emit("set-room-mode", false)}
-                                   className="material-icons exit settings-button">home</i>
+                                   className="material-icons exit settings-button">store</i>
                                 {isHost && !data.loadingCards ? (!inProcess
                                     ? (<i onClick={() => this.handleClickTogglePause()}
                                           className="material-icons start-game settings-button">play_arrow</i>)
