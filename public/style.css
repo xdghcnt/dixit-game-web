@@ -815,3 +815,29 @@ body.is-mobile {
 .popup_modals .modal_buttons .btn.btn_sdry {
     background-color: #7f8c8d !important;
 }
+
+.panel {
+    box-shadow: 0 0 4px 1px #969696;
+    background: white;
+}
+
+.dark-theme .panel {
+    box-shadow: 0 0 4px 1px #050505;
+    background: #363739;
+}
+
+a {
+    color: black;
+}
+
+.dark-theme a {
+    color: #cccaca;
+}
+
+.panel-accent {
+    background: #dde8d4;
+}
+
+.dark-theme .panel-accent {
+    background: #4c4c4c;
+}

@@ -152,6 +152,7 @@ class Game extends React.Component {
         this.socket = window.socket.of("memexit");
         this.player = {cards: []};
         this.socket.on("state", state => {
+            CommonRoom.processCommonRoom(state, this.state);
             if (this.state.phase && state.phase !== 0 && !parseInt(localStorage.muteSounds)) {
                 if (this.state.currentPlayer !== this.userId && state.currentPlayer === this.userId)
                     this.masterSound.play();
@@ -318,7 +319,7 @@ class Game extends React.Component {
 
     sendAvatar(file) {
         const
-            uri = "/memexit/upload-avatar",
+            uri = "/common/upload-avatar",
             xhr = new XMLHttpRequest(),
             fd = new FormData(),
             fileSize = ((file.size / 1024) / 1024).toFixed(4); // MB
@@ -720,8 +721,8 @@ class Game extends React.Component {
                                 </div>
                             </div>) : ""}
                             <div className="side-buttons">
-                                <i onClick={() => window.location = parentDir}
-                                   className="material-icons exit settings-button">exit_to_app</i>
+                                <i onClick={() => this.socket.emit("set-room-mode", false)}
+                                   className="material-icons exit settings-button">home</i>
                                 {isHost && !data.loadingCards ? (!inProcess
                                     ? (<i onClick={() => this.handleClickTogglePause()}
                                           className="material-icons start-game settings-button">play_arrow</i>)
@@ -756,6 +757,7 @@ class Game extends React.Component {
                             <i className="settings-hover-button material-icons">settings</i>
                             <input id="avatar-input" type="file" onChange={evt => this.handleSetAvatar(evt)}/>
                         </div>
+                        <CommonRoom state={this.state} app={this}/>
                     </div>
                 </div>
             );

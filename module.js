@@ -1,11 +1,9 @@
 function init(wsServer, path, vkToken) {
     const
         fs = require("fs"),
-        EventEmitter = require("events"),
         express = require("express"),
         {VK} = require("vk-io"),
         randomColor = require('randomcolor'),
-        exec = require("child_process").exec,
         app = wsServer.app,
         registry = wsServer.users,
         channel = "memexit",
@@ -18,24 +16,6 @@ function init(wsServer, path, vkToken) {
 
     const vk = new VK({token: vkToken});
 
-    app.post("/memexit/upload-avatar", function (req, res) {
-        registry.log(`memexit - ${req.body.userId} - upload-avatar`);
-        if (req.files && req.files.avatar && registry.checkUserToken(req.body.userId, req.body.userToken)) {
-            const userDir = `${registry.config.appDir || __dirname}/public/avatars/${req.body.userId}`;
-            exec(`rm -r ${userDir}`, () => {
-                fs.mkdir(userDir, () => {
-                    req.files.avatar.mv(`${userDir}/${req.files.avatar.md5}.png`, function (err) {
-                        if (err) {
-                            log(`fileUpload mv error ${err}`);
-                            return res.status(500).send("FAIL");
-                        }
-                        res.send(req.files.avatar.md5);
-                    });
-                })
-
-            });
-        } else res.status(500).send("Wrong data");
-    });
     app.use("/memexit", express.static(`${__dirname}/public`));
     if (registry.config.appDir)
         app.use("/memexit", express.static(`${registry.config.appDir}/public`));
@@ -52,9 +32,9 @@ function init(wsServer, path, vkToken) {
         });
     });
 
-    class GameState extends EventEmitter {
+        class GameState extends wsServer.users.RoomState {
         constructor(hostId, hostData, userRegistry) {
-            super();
+            super(hostId, hostData, userRegistry);
             const
                 room = {
                     inited: true,
