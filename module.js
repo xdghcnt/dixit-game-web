@@ -8,8 +8,8 @@ function init(wsServer, path, vkToken) {
         registry = wsServer.users,
         channel = "memexit",
         log = (msg) => {
-            fs.appendFile(`${registry.config.appDir || __dirname}/memexit-logs.txt`, `${msg}\n`, () => {
-            })
+            //fs.appendFile(`${registry.config.appDir || __dirname}/memexit-logs.txt`, `${msg}\n`, () => {
+            //})
         },
         testMode = process.argv[2] === "debug",
         PLAYERS_MIN = testMode ? 1 : 3;
