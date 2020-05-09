@@ -265,8 +265,8 @@ function init(wsServer, path, vkToken) {
                             update();
                         }).catch((error) => {
                             registry.log(`memexit - VK get cards error - ${error.message}`);
-                            stopGame();
                             send(room.hostId, "message", error.message || error);
+                            stopGame();
                             update();
                         });
                     } else {
