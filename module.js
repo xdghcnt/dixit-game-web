@@ -32,7 +32,7 @@ function init(wsServer, path, vkToken) {
         });
     });
 
-        class GameState extends wsServer.users.RoomState {
+    class GameState extends wsServer.users.RoomState {
         constructor(hostId, hostData, userRegistry) {
             super(hostId, hostData, userRegistry);
             const
@@ -104,8 +104,7 @@ function init(wsServer, path, vkToken) {
                                     resolve();
                             }).catch(reject)
                         }).catch(reject);
-                    }
-                    else
+                    } else
                         reject("Invalid group id");
                 }),
                 getCards = (count) => Promise.all(
@@ -150,15 +149,13 @@ function init(wsServer, path, vkToken) {
                                         processInactivity(room.currentPlayer);
                                         room.currentPlayer = getNextPlayer();
                                         startRound();
-                                    }
-                                    else if (room.phase === 2) {
+                                    } else if (room.phase === 2) {
                                         [...room.activePlayers].forEach(playerId => {
                                             if (room.currentPlayer !== playerId && !room.readyPlayers.has(playerId))
                                                 processInactivity(playerId);
                                         });
                                         revealCards();
-                                    }
-                                    else if (room.phase === 3) {
+                                    } else if (room.phase === 3) {
                                         [...room.activePlayers].forEach(playerId => {
                                             if (room.phase === 3 && room.currentPlayer !== playerId && !room.readyPlayers.has(playerId))
                                                 processInactivity(playerId);
@@ -357,8 +354,7 @@ function init(wsServer, path, vkToken) {
                             playerPlayedCard.owner = playerId;
                             if (playerId === room.currentPlayer)
                                 playerPlayedCard.correct = true;
-                        }
-                        else
+                        } else
                             log(`unexpected cardOnDesk empty ${printState()}`);
                         if (room.currentPlayer !== playerId) {
                             if (playerVotedCard)
@@ -379,11 +375,9 @@ function init(wsServer, path, vkToken) {
                                 card.votes.forEach(playerId => {
                                     addPoints(playerId, 3);
                                 });
-                            }
-                            else
+                            } else
                                 addPoints(card.owner, -3);
-                        }
-                        else
+                        } else
                             addPoints(card.owner, card.votes.length);
                     });
                     const mostVotedCard = [...room.deskCards].sort((a, b) => a.votes - b.votes).reverse()[0];
@@ -414,8 +408,7 @@ function init(wsServer, path, vkToken) {
                         room.spectators.delete(playerId);
                         delete room.playerNames[playerId];
                         this.emit("user-kicked", playerId);
-                    }
-                    else
+                    } else
                         room.spectators.add(playerId);
                     if (room.phase !== 0 && room.activePlayers.size < PLAYERS_MIN)
                         stopGame();
@@ -622,6 +615,9 @@ function init(wsServer, path, vkToken) {
             Object.assign(this.room, snapshot.room);
             Object.assign(this.state, snapshot.state);
             Object.assign(this.player, snapshot.player);
+            Object.keys(this.player).forEach((id) => {
+                this.players[id].keepCards = new Set(this.players[id].keepCards);
+            });
             this.room.paused = true;
             this.room.activePlayers = new JSONSet(this.room.activePlayers);
             this.room.inactivePlayers = new JSONSet(this.room.inactivePlayers);
