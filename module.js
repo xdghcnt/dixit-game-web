@@ -200,7 +200,7 @@ function init(wsServer, path, vkToken) {
                             })
                             .catch((error) => {
                                 registry.log(`memexit - VK group info error - ${error.message}`);
-                                endRound();
+                                stopGame();
                                 send(room.hostId, "message", error.message || error);
                                 update();
                             });
