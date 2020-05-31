@@ -37,6 +37,7 @@ function init(wsServer, path, vkToken) {
             super(hostId, hostData, userRegistry);
             const
                 room = {
+                    roomId: hostData.roomId,
                     inited: true,
                     hostId: hostId,
                     spectators: new JSONSet(),
@@ -88,9 +89,11 @@ function init(wsServer, path, vkToken) {
                 getGroupInfo = () => new Promise((resolve, reject) => {
                     const match = room.groupURI.match(/\/([^/]+)$/);
                     if (match && match[1]) {
+                        registry.log(`memexit debug - VK group loading started - ${room.roomId} - ${match[1]}`);
                         vk.api.groups.getById({
                             group_id: match[1]
                         }).then(res => {
+                            registry.log(`memexit debug - VK group loaded - ${room.roomId}`);
                             room.groupId = res[0].id;
                             vk.api.photos.get({
                                 owner_id: -room.groupId,
@@ -103,7 +106,10 @@ function init(wsServer, path, vkToken) {
                                 else
                                     resolve();
                             }).catch(reject)
-                        }).catch(reject);
+                        }).catch((err) => {
+                            registry.log(`memexit debug - VK group loading rejected - ${room.roomId} - ${err}`);
+                            reject(err);
+                        });
                     } else
                         reject("Invalid group id");
                 }),
