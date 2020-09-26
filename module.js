@@ -1,7 +1,6 @@
 function init(wsServer, path, vkToken) {
     const
         fs = require("fs"),
-        express = require("express"),
         {VK} = require("vk-io"),
         randomColor = require('randomcolor'),
         app = wsServer.app,
@@ -16,9 +15,9 @@ function init(wsServer, path, vkToken) {
 
     const vk = new VK({token: vkToken});
 
-    app.use("/memexit", express.static(`${__dirname}/public`));
+    app.use("/memexit", wsServer.static(`${__dirname}/public`));
     if (registry.config.appDir)
-        app.use("/memexit", express.static(`${registry.config.appDir}/public`));
+        app.use("/memexit", wsServer.static(`${registry.config.appDir}/public`));
     registry.handleAppPage(path, `${__dirname}/public/app.html`);
     app.get("/memexit/stats", function (req, res) {
         fs.readFile(`${registry.config.appDir || __dirname}/memexit-stats.txt`, {encoding: "utf-8"}, (err, data) => {
