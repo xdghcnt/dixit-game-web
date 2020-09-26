@@ -68,10 +68,12 @@ function init(wsServer, path, vkToken) {
                     authRequired: false,
                     playerAvatars: {},
                     needNewCards: true,
+                    managedVoice: true,
                     groupURI: "https://vk.com/mysticsofthelowersort"
                 },
                 state = {},
                 player = {};
+            this.room = room;
             this.room = room;
             this.state = state;
             this.player = player;
@@ -79,7 +81,20 @@ function init(wsServer, path, vkToken) {
             let interval;
             const
                 send = (target, event, data) => userRegistry.send(target, event, data),
-                update = () => send(room.onlinePlayers, "state", room),
+                update = () => {
+                    if (room.voiceEnabled)
+                        processUserVoice();
+                    send(room.onlinePlayers, "state", room);
+                },
+                processUserVoice = () => {
+                    room.userVoice = {};
+                    room.onlinePlayers.forEach((user) => {
+                        if (!room.managedVoice || !room.teamsLocked || room.phase === 0 || room.phase === 1)
+                            room.userVoice[user] = true;
+                        else if (room.currentPlayer !== user)
+                            room.userVoice[user] = true;
+                    });
+                },
                 updatePlayerState = () => {
                     [...room.activePlayers].forEach(playerId => {
                         if (room.onlinePlayers.has(playerId))
@@ -466,11 +481,13 @@ function init(wsServer, path, vkToken) {
                         registry.log(error.message);
                     }
                 };
+            this.updatePublicState = update;
             this.userJoin = userJoin;
             this.userLeft = userLeft;
             this.userEvent = userEvent;
             this.getGroupInfo = getGroupInfo;
             this.eventHandlers = {
+                ...this.eventHandlers,
                 "update-avatar": (user, id) => {
                     room.playerAvatars[user] = id;
                     update()

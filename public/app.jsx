@@ -24,7 +24,7 @@ class Player extends React.Component {
                 <div className="player-avatar-section"
                      onTouchStart={(e) => e.target.focus()}
                      onClick={() => (id === data.userId) && this.props.handleAvatarClick()}>
-                    <Avatar data={data} player={id}/>
+                    <Avatar data={data} player={id} playerList={true}/>
                     {id === data.userId ? (<i className="change-avatar-icon material-icons" title="Change avatar">
                         edit
                     </i>) : ""}
@@ -64,7 +64,10 @@ class Avatar extends React.Component {
             hasAvatar = !!this.props.data.playerAvatars[this.props.player],
             avatarURI = `/memexit/avatars/${this.props.player}/${this.props.data.playerAvatars[this.props.player]}.png`;
         return (
-            <div className={cs("avatar", {"has-avatar": hasAvatar})}
+            <div className={cs("avatar", {"has-avatar": hasAvatar},
+                ...(this.props.playerList ?
+                    UserAudioMarker.getAudioMarkerClasses(this.props.data, this.props.player)
+                    : []))}
                  style={{
                      "background-image": hasAvatar
                          ? `url(${avatarURI})`
@@ -126,6 +129,7 @@ class Card extends React.Component {
 
 class Game extends React.Component {
     componentDidMount() {
+        this.gameName = "memexit";
         const initArgs = {};
         if (!parseInt(localStorage.darkThemeDixit))
             document.body.classList.add("dark-theme");
@@ -144,7 +148,7 @@ class Game extends React.Component {
             delete localStorage.acceptDelete;
         }
         initArgs.avatarId = localStorage.avatarId;
-        initArgs.roomId = location.hash.substr(1);
+        initArgs.roomId = this.roomId = location.hash.substr(1);
         initArgs.userId = this.userId = localStorage.dixitUserId;
         initArgs.token = this.userToken = localStorage.dixitUserToken;
         initArgs.userName = localStorage.userName;

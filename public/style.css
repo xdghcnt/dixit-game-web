@@ -845,3 +845,7 @@ a {
 .player.offline {
     color: #7c7c7c;
 }
+
+.user-audio-marker.speaking {
+    box-shadow: 0 0 0 2px #9ccc65 !important;
+}
