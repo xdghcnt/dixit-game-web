@@ -80,8 +80,7 @@ body.dark-theme {
 
 body {
     margin: 0;
-    background: linear-gradient(to right, rgb(238, 244, 236) 0%, #fff5e9 100%);
-    background: #e5efde;
+    background: #202020;
     -webkit-user-drag: none;
 }
 
