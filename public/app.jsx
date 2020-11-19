@@ -489,8 +489,10 @@ class Game extends React.Component {
         }
 
         // set the transition
-        document.getElementsByClassName("rtb-slice1")[0].style.transform = `rotate(${firstHalfAngle}deg)`;
-        document.getElementsByClassName("rtb-slice2")[0].style.transform = `rotate(${secondHalfAngle}deg)`;
+        if (document.querySelector(".rtb-slice1"))
+            document.querySelector(".rtb-slice1").style.transform = `rotate(${firstHalfAngle}deg)`;
+        if (document.querySelector(".rtb-slice2"))
+            document.querySelector(".rtb-slice2").style.transform = `rotate(${secondHalfAngle}deg)`;
     }
 
     render() {
