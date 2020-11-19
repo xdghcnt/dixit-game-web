@@ -248,10 +248,12 @@ class Game extends React.Component {
         const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
         const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
 
-        if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-            requestFullScreen.call(docEl);
-        } else {
-            cancelFullScreen.call(doc);
+        if (requestFullScreen && cancelFullScreen) {
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                requestFullScreen.call(docEl);
+            } else {
+                cancelFullScreen.call(doc);
+            }
         }
     }
 
