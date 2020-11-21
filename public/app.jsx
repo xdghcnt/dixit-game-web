@@ -619,7 +619,7 @@ class Game extends React.Component {
                                      onClick={(evt) => this.handleJoinSpectatorsClick(evt)}>
                                     {data.spectators.map((id => (
                                         <Player key={id} data={data} id={id}
-                                                handleGiveHost={(id) => this.handleGiveHost(id)}
+                                                handleGiveHost={(id, evt) => this.handleGiveHost(id, evt)}
                                                 handleAvatarClick={() => this.handleClickSetAvatar()}
                                                 handleRemovePlayer={(id, evt) => this.handleRemovePlayer(id, evt)}/>
                                     )))}
