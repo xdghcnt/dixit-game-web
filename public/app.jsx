@@ -156,7 +156,11 @@ class Game extends React.Component {
         this.socket = window.socket.of("memexit");
         this.player = {cards: []};
         this.socket.on("state", state => {
-            CommonRoom.processCommonRoom(state, this.state);
+            CommonRoom.processCommonRoom(state, this.state, {
+                maxPlayers: "∞",
+                largeImageKey: "memexit",
+                details: "Memexit/Мемоджинариум"
+            });
             if (this.state.phase && state.phase !== 0 && !parseInt(localStorage.muteSounds)) {
                 if (this.state.currentPlayer !== this.userId && state.currentPlayer === this.userId)
                     this.masterSound.play();
