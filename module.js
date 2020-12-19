@@ -13,6 +13,8 @@ function init(wsServer, path, vkToken) {
         testMode = process.argv[2] === "debug",
         PLAYERS_MIN = testMode ? 1 : 3;
 
+    const moderatedDixit = JSON.parse(fs.readFileSync(`${registry.config.appDir}/moderated-dixit.json`));
+
     const vk = new VK({token: vkToken});
 
     app.use("/memexit", wsServer.static(`${__dirname}/public`));
@@ -72,6 +74,7 @@ function init(wsServer, path, vkToken) {
                 },
                 state = {},
                 player = {};
+            let deck = [];
             this.room = room;
             this.room = room;
             this.state = state;
@@ -100,6 +103,9 @@ function init(wsServer, path, vkToken) {
                             send(playerId, "player-state", player[playerId]);
                     });
                 },
+                buildDeck = () => {
+                    deck = shuffleArray(Array.from(Array(room.groupCount), (_, x) => x));
+                },
                 getGroupInfo = () => new Promise((resolve, reject) => {
                     const match = room.groupURI.match(/\/([^/]+)$/);
                     if (match && match[1]) {
@@ -108,18 +114,24 @@ function init(wsServer, path, vkToken) {
                             group_id: match[1]
                         }).then(res => {
                             registry.log(`memexit debug - VK group loaded - ${room.roomId}`);
-                            room.groupId = res[0].id;
-                            vk.api.photos.get({
-                                owner_id: -room.groupId,
-                                album_id: "wall",
-                                count: 0
-                            }).then(res => {
-                                room.groupCount = res.count;
-                                if (room.groupCount < 1)
-                                    reject("Group has no images");
-                                else
-                                    resolve();
-                            }).catch(reject)
+                            if (room.groupId === res[0].id)
+                                resolve();
+                            else {
+                                room.groupId = res[0].id;
+                                vk.api.photos.get({
+                                    owner_id: -room.groupId,
+                                    album_id: "wall",
+                                    count: 0
+                                }).then(res => {
+                                    room.groupCount = res.count;
+                                    if (room.groupCount < 1)
+                                        reject("Group has no images");
+                                    else {
+                                        buildDeck();
+                                        resolve();
+                                    }
+                                }).catch(reject)
+                            }
                         }).catch((err) => {
                             registry.log(`memexit debug - VK group loading rejected - ${room.roomId} - ${err}`);
                             reject(err);
@@ -128,14 +140,32 @@ function init(wsServer, path, vkToken) {
                         reject("Invalid group id");
                 }),
                 getCards = (count) => Promise.all(
-                    Array.apply(null, new Array(count)).map(() => vk.api.photos.get({
+                    Array.apply(null, new Array(count)).map(() => getCard())
+                ),
+                getCard = () => {
+                    if (!deck.length) {
+                        send(room.onlinePlayers, "deck-reshuffled");
+                        buildDeck();
+                    }
+                    return vk.api.photos.get({
                         owner_id: -room.groupId,
                         album_id: "wall",
                         photo_sizes: 1,
                         count: 1,
-                        offset: getRandomInt(0, room.groupCount - 1)
-                    }).then(data => data.items[0].sizes[data.items[0].sizes.length - 1].url))
-                ),
+                        offset: deck.pop()
+                    }).then(data => {
+                        const url = data.items[0].sizes[data.items[0].sizes.length - 1].url;
+                        if (!isReported(url))
+                            return data.items[0].sizes[data.items[0].sizes.length - 1].url;
+                        else
+                            return getCard();
+                    });
+                },
+                isReported = (url) => {
+                    const match = url.match(/\/([^/]+?.jpg)/);
+                    return match && match[1] && moderatedDixit?.blockedImages
+                        ?.[room.groupURI]?.some((reportedUrl) => reportedUrl.includes(match[1]));
+                },
                 getNextPlayer = () => {
                     const nextPlayerIndex = [...room.players].indexOf(room.currentPlayer) + 1;
                     return [...room.players][(room.players.size === nextPlayerIndex) ? 0 : nextPlayerIndex];
@@ -609,6 +639,17 @@ function init(wsServer, path, vkToken) {
                         room.spectators.add(user);
                         update();
                     }
+                },
+                "report-card": (user, card) => {
+                    const reports = new Set(moderatedDixit.reportedImages[room.groupURI] || []);
+                    reports.add(card);
+                    moderatedDixit.reportedImages[room.groupURI] = [...reports];
+                    fs.writeFile(
+                        `${registry.config.appDir}/moderated-dixit.json`,
+                        JSON.stringify(moderatedDixit, undefined, 4),
+                        () => {
+                        });
+                    send(user, "message", "Жалоба принята");
                 }
             };
         }

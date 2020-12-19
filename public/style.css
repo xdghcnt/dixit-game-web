@@ -72,7 +72,6 @@ body.dark-theme {
 }
 
 .kicked {
-    color: black;
     text-align: center;
     padding: 20px;
     font-size: 18px;
@@ -847,4 +846,20 @@ a {
 
 .user-audio-marker.speaking {
     box-shadow: 0 0 0 2px #9ccc65 !important;
+}
+
+.report-card-button {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    padding-top: 55px;
+    bottom: 0;
+    color: #ef6969;
+    background: #80808057;
+    text-shadow: 0 0 12px black;
+}
+
+.report-card-button i {
+    font-size: 40px;
 }

@@ -104,18 +104,26 @@ class Card extends React.Component {
                      onTouchStart={(evt) => !evt.stopPropagation() && props.handleCardPress(props.type, props.id)}>
                     <div className="card-face" style={{"background-image": `url(${props.card})`}}/>
                 </div>
-                <div className="card-buttons" onMouseDown={(evt) => evt.stopPropagation()}
-                     onMouseUp={(evt) => evt.stopPropagation()}>
-                    <div className="card-button-zoom"
-                         onClick={() => props.handleZoomClick(props.type, props.id)}>
-                        <i
-                            className="material-icons">search</i></div>
-                    <div className="card-button-open" onClick={() => props.handleOpenClick(props.card)}><i
-                        className="material-icons">open_in_new</i></div>
-                </div>
-                {data.phase === 1 && data.userId === data.currentPlayer ? (
-                    <div className="card-submit"
-                         onMouseDown={(evt) => !evt.stopPropagation() && props.handleAddCommandClick()}>➜</div>) : ""}
+                {data.reportMode
+                    ? <div className="report-card-button"
+                           onMouseUp={(evt) => evt.stopPropagation()}
+                           onClick={(evt) => !evt.stopPropagation() && props.handleReportCard(props.card)}>
+                        <i className="material-icons">report_problem</i>
+                    </div>
+                    : <>
+                        <div className="card-buttons" onMouseDown={(evt) => evt.stopPropagation()}
+                             onMouseUp={(evt) => evt.stopPropagation()}>
+                            <div className="card-button-zoom"
+                                 onClick={() => props.handleZoomClick(props.type, props.id)}>
+                                <i
+                                    className="material-icons">search</i></div>
+                            <div className="card-button-open" onClick={() => props.handleOpenClick(props.card)}><i
+                                className="material-icons">open_in_new</i></div>
+                        </div>
+                        {data.phase === 1 && data.userId === data.currentPlayer ? (
+                            <div className="card-submit"
+                                 onMouseDown={(evt) => !evt.stopPropagation() && props.handleAddCommandClick()}>➜</div>) : ""}
+                    </>}
                 {props.cardData && props.cardData.owner ? (<div className="card-info">
                     <div className="card-owner"><Avatar data={data} player={props.cardData.owner}/></div>
                     <div className="card-votes">{
@@ -181,6 +189,9 @@ class Game extends React.Component {
         this.socket.on("player-state", player => {
             this.player = Object.assign({}, this.player, player);
             this.setState(Object.assign(this.state, {player: this.player}));
+        });
+        this.socket.on("deck-reshuffled", () => {
+            popup.alert({content: "Изображения в вашем паблике закончились, так что колода была перетасована"});
         });
         this.socket.on("message", text => {
             popup.alert({content: text});
@@ -363,6 +374,17 @@ class Game extends React.Component {
 
     handleClickTogglePause() {
         this.socket.emit("toggle-pause");
+    }
+
+    handleToggleReportMode() {
+        this.state.reportMode = !this.state.reportMode;
+        this.setState(this.state);
+    }
+
+    handleReportCard(card) {
+        this.socket.emit("report-card", card);
+        this.state.reportMode = false;
+        this.setState(this.state);
     }
 
     handleToggleTeamLockClick() {
@@ -639,6 +661,7 @@ class Game extends React.Component {
                                               handleZoomClick={(type, id) => this.zoomCard(type, id)}
                                               handleOpenClick={(img) => this.handleCardOpenClick(img)}
                                               handleCardClick={(type, id) => this.chooseCard(type, id)}
+                                              handleReportCard={(card) => this.handleReportCard(card)}
                                               handleCardPress={(type, id) => this.handleCardPress(type, id)}/>
                                     )))
                                     : data.readyPlayers.map(() => (<div className="card flipped"/>))}
@@ -651,6 +674,7 @@ class Game extends React.Component {
                                           handleZoomClick={(type, id) => this.zoomCard(type, id)}
                                           handleOpenClick={(img) => this.handleCardOpenClick(img)}
                                           handleCardClick={(type, id) => this.chooseCard(type, id)}
+                                          handleReportCard={(card) => this.handleReportCard(card)}
                                           handleCardPress={(type, id) => this.handleCardPress(type, id)}/>
                                 )))}
                             </div>
@@ -736,6 +760,8 @@ class Game extends React.Component {
                                 {this.state.userId === this.state.hostId ?
                                     <i onClick={() => this.socket.emit("set-room-mode", false)}
                                        className="material-icons exit settings-button">store</i> : ""}
+                                <i onClick={() => this.handleToggleReportMode()}
+                                   className="material-icons start-game settings-button">{data.reportMode ? "report_off" : "report"}</i>
                                 {isHost && !data.loadingCards ? (!inProcess
                                     ? (<i onClick={() => this.handleClickTogglePause()}
                                           className="material-icons start-game settings-button">play_arrow</i>)
