@@ -679,7 +679,7 @@ function init(wsServer, path, vkToken) {
             Object.assign(this.state, snapshot.state);
             Object.assign(this.player, snapshot.player);
             Object.keys(this.player).forEach((id) => {
-                this.player[id].keepCards = new Set(this.player[id].keepCards);
+                this.player[id].keepCards = new JSONSet(this.player[id].keepCards);
             });
             this.room.paused = true;
             this.room.activePlayers = new JSONSet(this.room.activePlayers);
