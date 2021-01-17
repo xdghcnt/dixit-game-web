@@ -13,7 +13,18 @@ function init(wsServer, path, vkToken) {
         testMode = process.argv[2] === "debug",
         PLAYERS_MIN = testMode ? 1 : 3;
 
-    const moderatedDixit = JSON.parse(fs.readFileSync(`${registry.config.appDir}/moderated-dixit.json`));
+    let moderatedDixit = {};
+    const
+        moderatedDixitFile = `${registry.config.appDir}/moderated-dixit.json`,
+        loadModeratedDixit = () => {
+            registry.log(`memexit debug - moderation file updated`);
+            fs.readFile(moderatedDixitFile, (err, data) => {
+                moderatedDixit = JSON.parse(data);
+            });
+        };
+    fs.watchFile(moderatedDixitFile, () => {
+        loadModeratedDixit();
+    });
 
     const vk = new VK({token: vkToken});
 
@@ -645,7 +656,7 @@ function init(wsServer, path, vkToken) {
                     reports.add(card);
                     moderatedDixit.reportedImages[room.groupURI] = [...reports];
                     fs.writeFile(
-                        `${registry.config.appDir}/moderated-dixit.json`,
+                        moderatedDixitFile,
                         JSON.stringify(moderatedDixit, undefined, 4),
                         () => {
                         });
