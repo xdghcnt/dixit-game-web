@@ -13,7 +13,7 @@ function init(wsServer, path, vkToken) {
         testMode = process.argv[2] === "debug",
         PLAYERS_MIN = testMode ? 1 : 3;
 
-    let moderatedDixit = {};
+    let moderatedDixit = {reportedImages: {}};
     const
         moderatedDixitFile = `${registry.config.appDir}/moderated-dixit.json`,
         loadModeratedDixit = () => {
