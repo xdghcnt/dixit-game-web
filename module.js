@@ -13,7 +13,7 @@ function init(wsServer, path, vkToken) {
         testMode = process.argv[2] === "debug",
         PLAYERS_MIN = testMode ? 1 : 3;
 
-    let moderatedDixit = {reportedImages: {}};
+    let moderatedDixit = {blockedImages: [], reportedImages: []};
     const
         moderatedDixitFile = `${registry.config.appDir}/moderated-dixit.json`,
         loadModeratedDixit = () => {
@@ -25,6 +25,7 @@ function init(wsServer, path, vkToken) {
     fs.watchFile(moderatedDixitFile, () => {
         loadModeratedDixit();
     });
+    loadModeratedDixit();
 
     const vk = new VK({token: vkToken});
 
