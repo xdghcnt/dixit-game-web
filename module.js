@@ -466,6 +466,11 @@ function init(wsServer, path, vkToken) {
                     room.activePlayers.delete(playerId);
                     room.players.delete(playerId);
                     room.readyPlayers.delete(playerId);
+                    if (player[playerId]) {
+                        player[playerId].playedCard = null;
+                        player[playerId].cardOnDesk = null;
+                        player[playerId].votedCard = null;
+                    }
                     if (room.spectators.has(playerId) || !room.onlinePlayers.has(playerId)) {
                         room.spectators.delete(playerId);
                         delete room.playerNames[playerId];
