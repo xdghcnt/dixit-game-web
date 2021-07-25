@@ -8,7 +8,7 @@
     "public"
   ],
   "dependencies": {
-    "vk-io": "4.0.0-rc.30",
+    "vk-io": "4.3.2",
     "randomcolor": "0.5.3"
   }
 }
