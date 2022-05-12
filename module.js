@@ -246,7 +246,8 @@ function init(wsServer, path, vkToken) {
                     });
                 },
                 startGame = () => {
-                    if (room.players.size >= PLAYERS_MIN)
+                    if (room.players.size >= PLAYERS_MIN) {
+                        room.loadingCards = true;
                         getGroupInfo()
                             .then(() => {
                                 room.paused = false;
@@ -266,7 +267,7 @@ function init(wsServer, path, vkToken) {
                                 send(room.hostId, "message", error.message || error);
                                 update();
                             });
-                    else {
+                    } else {
                         room.paused = true;
                         room.teamsLocked = false;
                     }
