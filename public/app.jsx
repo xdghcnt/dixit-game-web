@@ -30,7 +30,9 @@ class Player extends React.Component {
                     </i>) : ""}
                 </div>
                 <div className="player-name-section">
-                    <span className="player-name">{data.currentPlayer === id ? "> " : ""}{data.playerNames[id]}</span>
+                    <span className="player-name">{data.currentPlayer === id ? "> " : ""}
+                        <PlayerName data={data} id={id} />
+                    </span>
                     &nbsp;({data.playerScores[id] || 0})
                     <div className="player-host-controls">
                         {(data.hostId === data.userId && data.userId !== id) ? (
@@ -61,8 +63,8 @@ class Player extends React.Component {
 class Avatar extends React.Component {
     render() {
         const
-            hasAvatar = !!this.props.data.playerAvatars[this.props.player],
-            avatarURI = `/memexit/avatars/${this.props.player}/${this.props.data.playerAvatars[this.props.player]}.png`;
+            avatar = window.commonRoom.getPlayerAvatarURL(this.props.player),
+            hasAvatar = !!avatar;
         return (
             <div className={cs("avatar", {"has-avatar": hasAvatar},
                 ...(this.props.playerList ?
@@ -70,7 +72,7 @@ class Avatar extends React.Component {
                     : []))}
                  style={{
                      "background-image": hasAvatar
-                         ? `url(${avatarURI})`
+                         ? `url(${avatar})`
                          : `none`,
                      "background-color": hasAvatar
                          ? `transparent`
@@ -138,37 +140,16 @@ class Card extends React.Component {
 class Game extends React.Component {
     componentDidMount() {
         this.gameName = "memexit";
-        const initArgs = {};
+        const initArgs = CommonRoom.roomInit(this);
         if (!parseInt(localStorage.darkThemeDixit))
             document.body.classList.add("dark-theme");
-        if (!localStorage.dixitUserId || !localStorage.dixitUserToken) {
-            while (!localStorage.userName)
-                localStorage.userName = prompt("Your name");
-            localStorage.dixitUserId = makeId();
-            localStorage.dixitUserToken = makeId();
-        }
-        if (!location.hash)
-            history.replaceState(undefined, undefined, location.origin + location.pathname + "#" + makeId());
-        else
-            history.replaceState(undefined, undefined, location.origin + location.pathname + location.hash);
-        if (localStorage.acceptDelete) {
-            initArgs.acceptDelete = localStorage.acceptDelete;
-            delete localStorage.acceptDelete;
-        }
-        initArgs.avatarId = localStorage.avatarId;
-        initArgs.roomId = this.roomId = location.hash.substr(1);
-        initArgs.userId = this.userId = localStorage.dixitUserId;
-        initArgs.token = this.userToken = localStorage.dixitUserToken;
-        initArgs.userName = localStorage.userName;
-        initArgs.wssToken = window.wssToken;
-        this.socket = window.socket.of("memexit");
         this.player = {cards: []};
         this.socket.on("state", state => {
             CommonRoom.processCommonRoom(state, this.state, {
                 maxPlayers: "∞",
                 largeImageKey: "memexit",
                 details: "Memexit/Мемоджинариум"
-            });
+            }, this);
             if (this.state.phase && state.phase !== 0 && !parseInt(localStorage.muteSounds)) {
                 if (this.state.currentPlayer !== this.userId && state.currentPlayer === this.userId)
                     this.masterSound.play();
@@ -205,19 +186,6 @@ class Game extends React.Component {
         });
         this.socket.on("reload", () => {
             setTimeout(() => window.location.reload(), 3000);
-        });
-        this.socket.on("auth-required", () => {
-            this.setState(Object.assign({}, this.state, {
-                userId: this.userId,
-                authRequired: true
-            }));
-            if (grecaptcha)
-                grecaptcha.render("captcha-container", {
-                    sitekey: "",
-                    callback: (key) => this.socket.emit("auth", key)
-                });
-            else
-                setTimeout(() => window.location.reload(), 3000)
         });
         this.socket.on("prompt-delete-prev-room", (roomList) => {
             if (localStorage.acceptDelete =
@@ -299,12 +267,12 @@ class Game extends React.Component {
 
     handleRemovePlayer(id, evt) {
         evt.stopPropagation();
-        popup.confirm({content: `Removing ${this.state.playerNames[id]}?`}, (evt) => evt.proceed && this.socket.emit("remove-player", id));
+        popup.confirm({content: `Removing ${window.commonRoom.getPlayerName(id)}?`}, (evt) => evt.proceed && this.socket.emit("remove-player", id));
     }
 
     handleGiveHost(id, evt) {
         evt.stopPropagation();
-        popup.confirm({content: `Give host ${this.state.playerNames[id]}?`}, (evt) => evt.proceed && this.socket.emit("give-host", id));
+        popup.confirm({content: `Give host ${window.commonRoom.getPlayerName(id)}?`}, (evt) => evt.proceed && this.socket.emit("give-host", id));
     }
 
     handleChangeTime(value, type) {
@@ -320,45 +288,12 @@ class Game extends React.Component {
     }
 
     handleClickChangeName() {
-        popup.prompt({content: "New name", value: this.state.playerNames[this.state.userId] || ""}, (evt) => {
+        popup.prompt({content: "New name", value: window.commonRoom.getPlayerName(this.state.userId) || ""}, (evt) => {
             if (evt.proceed && evt.input_value.trim()) {
                 this.socket.emit("change-name", evt.input_value.trim());
                 localStorage.userName = evt.input_value.trim();
             }
         });
-    }
-
-    handleClickSetAvatar() {
-        document.getElementById("avatar-input").click();
-    }
-
-    handleSetAvatar(event) {
-        const input = event.target;
-        if (input.files && input.files[0])
-            this.sendAvatar(input.files[0]);
-    }
-
-    sendAvatar(file) {
-        const
-            uri = "/common/upload-avatar",
-            xhr = new XMLHttpRequest(),
-            fd = new FormData(),
-            fileSize = ((file.size / 1024) / 1024).toFixed(4); // MB
-        if (fileSize <= 5) {
-
-            xhr.open("POST", uri, true);
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    localStorage.avatarId = xhr.responseText;
-                    this.socket.emit("update-avatar", localStorage.avatarId);
-                } else if (xhr.readyState === 4 && xhr.status !== 200) popup.alert({content: "File upload error"});
-            };
-            fd.append("avatar", file);
-            fd.append("userId", this.userId);
-            fd.append("userToken", this.userToken);
-            xhr.send(fd);
-        } else
-            popup.alert({content: "File shouldn't be larger than 5 MB"});
     }
 
     handleToggleTheme() {
@@ -523,6 +458,10 @@ class Game extends React.Component {
             document.querySelector(".rtb-slice2").style.transform = `rotate(${secondHalfAngle}deg)`;
     }
 
+    handleClickSetAvatar() {
+        window.commonRoom.handleClickSetImage('avatar');
+    }
+
     render() {
         clearTimeout(this.timerTimeout);
         if (this.state.disconnected)
@@ -563,7 +502,7 @@ class Game extends React.Component {
                     status = "Not enough players";
             } else if (!isMaster) {
                 if (data.phase === 1)
-                    status = `${data.playerNames[data.currentPlayer]} is making up a story...`;
+                    status = `${window.commonRoom.getPlayerName(data.currentPlayer)} is making up a story...`;
                 else if (data.phase === 2)
                     status = "Choose your card matching the story";
                 else if (data.phase === 3)
@@ -579,6 +518,7 @@ class Game extends React.Component {
             return (
                 <div className={cs("game", {timed: this.state.timed})}
                      onMouseUp={() => this.unZoomCard()}>
+                    <CommonRoom state={this.state} app={this}/>
                     <div className={
                         cs("game-board", {
                             active: this.state.inited,
@@ -599,7 +539,7 @@ class Game extends React.Component {
                                             </div>
                                         </div>) : ""}
                                     {!data.playerWin ? (data.command ? (<div
-                                        className="command">«{data.command}»</div>) : "") : `The winner is ${data.playerNames[data.playerWin]}!`}
+                                        className="command">«{data.command}»</div>) : "") : `The winner is ${window.commonRoom.getPlayerName(data.playerWin)}!`}
                                     <div className="status-text">{status}</div>
                                 </div>
                                 <div className="timer-section">
@@ -794,9 +734,7 @@ class Game extends React.Component {
                                           className="toggle-theme material-icons settings-button">wb_sunny</i>)}
                             </div>
                             <i className="settings-hover-button material-icons">settings</i>
-                            <input id="avatar-input" type="file" onChange={evt => this.handleSetAvatar(evt)}/>
                         </div>
-                        <CommonRoom state={this.state} app={this}/>
                     </div>
                 </div>
             );

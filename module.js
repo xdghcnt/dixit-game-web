@@ -47,7 +47,7 @@ function init(wsServer, path, vkToken) {
 
     class GameState extends wsServer.users.RoomState {
         constructor(hostId, hostData, userRegistry) {
-            super(hostId, hostData, userRegistry);
+            super(hostId, hostData, userRegistry, registry.games.memexit.id, path);
             const
                 room = {
                     ...this.room,
@@ -451,8 +451,14 @@ function init(wsServer, path, vkToken) {
                     const scores = [...room.activePlayers].map(playerId => room.playerScores[playerId] || 0).sort((a, b) => a - b).reverse();
                     if (scores[0] > scores[1]) {
                         room.playerLeader = [...room.activePlayers].filter(playerId => room.playerScores[playerId] === scores[0])[0];
-                        if (scores[0] >= room.goal)
+                        if (scores[0] >= room.goal) {
                             room.playerWin = room.playerLeader;
+                            const userData = {user: room.playerLeader, room};
+                            registry.authUsers.processAchievement(userData, registry.achievements.win100Memexit.id);
+                            registry.authUsers.processAchievement(userData, registry.achievements.winGames.id, {
+                                game: registry.games.memexit.id
+                            });
+                        }
                     }
                 },
                 addPoints = (playerId, points) => {
@@ -621,11 +627,6 @@ function init(wsServer, path, vkToken) {
                         room.goal = parseInt(value);
                     update();
                 },
-                "change-name": (user, value) => {
-                    if (value)
-                        room.playerNames[user] = value.substr && value.substr(0, 60);
-                    update();
-                },
                 "remove-player": (user, playerId) => {
                     if (playerId && user === room.hostId)
                         removePlayer(playerId);
@@ -746,7 +747,7 @@ function init(wsServer, path, vkToken) {
         }
     }
 
-    registry.createRoomManager(path, channel, GameState);
+    registry.createRoomManager(path, GameState);
 }
 
 module.exports = init;
