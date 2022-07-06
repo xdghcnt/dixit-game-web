@@ -502,7 +502,7 @@ class Game extends React.Component {
                     status = "Not enough players";
             } else if (!isMaster) {
                 if (data.phase === 1)
-                    status = `${window.commonRoom.getPlayerName(data.currentPlayer)} is making up a story...`;
+                    status = `${window.commonRoom?.getPlayerName(data.currentPlayer)} is making up a story...`;
                 else if (data.phase === 2)
                     status = "Choose your card matching the story";
                 else if (data.phase === 3)
@@ -539,7 +539,7 @@ class Game extends React.Component {
                                             </div>
                                         </div>) : ""}
                                     {!data.playerWin ? (data.command ? (<div
-                                        className="command">«{data.command}»</div>) : "") : `The winner is ${window.commonRoom.getPlayerName(data.playerWin)}!`}
+                                        className="command">«{data.command}»</div>) : "") : `The winner is ${window.commonRoom?.getPlayerName(data.playerWin)}!`}
                                     <div className="status-text">{status}</div>
                                 </div>
                                 <div className="timer-section">
