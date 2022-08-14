@@ -866,3 +866,9 @@ a {
 .report-card-button i {
     font-size: 40px;
 }
+
+@media (max-width: 1135px) {
+    .status-bar {
+        padding-top: 20px;
+    }
+}
