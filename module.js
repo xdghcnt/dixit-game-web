@@ -121,11 +121,15 @@ function init(wsServer, path, vkToken) {
                 getGroupInfo = () => new Promise((resolve, reject) => {
                     const match = room.groupURI.match(/\/([^/]+)$/);
                     if (match && match[1]) {
+                        let result = {};
                         registry.log(`memexit debug - VK group loading started - ${room.roomId} - ${match[1]}`);
                         vk.api.groups.getById({
                             group_id: match[1]
                         }).then(res => {
                             registry.log(`memexit debug - VK group loaded - ${room.roomId}`);
+                            result = res;
+                            if (res.groups)
+                                res = res.groups;
                             if (room.groupId === res[0].id)
                                 resolve();
                             else {
@@ -146,6 +150,7 @@ function init(wsServer, path, vkToken) {
                             }
                         }).catch((err) => {
                             registry.log(`memexit debug - VK group loading rejected - ${room.roomId} - ${err}`);
+                            registry.log(`memexit debug - res - ${JSON.stringify(result, null, 4)}`);
                             reject(err);
                         });
                     } else
